@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>MatchMind: ФотоПамять</title>
+<style>
+*{
+  margin:0; padding:0; box-sizing:border-box;
+  font-family:system-ui,-apple-system,BlinkMacSystemFont,Arial,sans-serif;
+  user-select:none;
+}
+body{
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:#eef1f6;
+}
+.game-container{
+  width:100%; max-width:520px;
+  padding:28px;
+  border-radius:22px;
+  background:#eef1f6;
+  box-shadow:
+    12px 12px 24px #d6dae0,
+   -12px -12px 24px #ffffff;
+  text-align:center;
+}
+h1{margin-bottom:14px;}
+.controls-start{
+  display:flex; justify-content:center; gap:12px; margin-bottom:16px;
+}
+input{
+  width:90px; padding:10px; font-size:18px; text-align:center;
+  border-radius:14px; border:none;
+  background:#eef1f6;
+  box-shadow: inset 4px 4px 8px #cfd3da, inset -4px -4px 8px #ffffff;
+}
+button{
+  padding:14px 26px; font-size:16px;
+  border:none; border-radius:16px;
+  background:#eef1f6; cursor:pointer;
+  box-shadow: 6px 6px 12px #cfd3da, -6px -6px 12px #ffffff;
+}
+button:active{ box-shadow: inset 4px 4px 8px #cfd3da, inset -4px -4px 8px #ffffff; }
+button:disabled{ opacity:.5; cursor:default; }
+.description{font-size:14.5px; line-height:1.45; color:#555; margin-bottom:18px;}
+.timer{font-size:24px; font-weight:700; color:#e74c3c; margin:14px 0;}
+.matches-container{
+  position:relative; height:320px;
+  border-radius:18px;
+  background:#eef1f6;
+  box-shadow: inset 6px 6px 12px #cfd3da, inset -6px -6px 12px #ffffff;
+  overflow:hidden;
+}
+@keyframes fall{
+  0%{transform:translate(-50%,-140px) rotate(var(--rot));opacity:0}
+  70%{transform:translate(-50%,8px) rotate(var(--rot));opacity:1}
+  100%{transform:translate(-50%,0) rotate(var(--rot))}
+}
+.match{
+  position:absolute; width:80px; height:6px; border-radius:4px;
+  background:linear-gradient(#deb887,#cfa36a 40%,#b88952);
+  box-shadow:0 2px 4px rgba(0,0,0,.25);
+  animation:fall .6s cubic-bezier(.22,1.2,.36,1) both;
+  cursor:pointer;
+}
+.match::before{
+  content:''; position:absolute; right:-10px; top:-4px;
+  width:14px; height:14px; border-radius:50%;
+  background:radial-gradient(circle,#ff6b6b,#b22222);
+}
+.match.selected{ outline:3px solid #4caf50; }
+.controls{display:flex; justify-content:center; gap:14px; margin-top:16px;}
+.hidden{display:none}
+.result{margin-top:14px; font-weight:600; color:#444;}
+.hint{margin-top:8px; font-size:13px; color:#777}
+</style>
+</head>
+<body>
+<div class="game-container">
+  <h1>🧠 MatchMind: ФотоПамять</h1>
+  <div id="startSection">
+    <div class="controls-start">
+      <input type="number" id="matchCount" min="1" max="20" value="5">
+      <button id="startBtn">Начать</button>
+    </div>
+    <div class="description">
+      <p>Подготовьте бумагу и ручку.</p>
+      <p><strong>Запомните расположение спичек и зарисуйте их.</strong></p>
+    </div>
+  </div>
+  <div id="timer" class="timer hidden"></div>
+  <div id="matches" class="matches-container hidden"></div>
+  <div class="controls">
+    <button id="showBtn" class="hidden">Показать</button>
+    <button id="resetBtn" class="hidden">Новая попытка</button>
+  </div>
+  <div id="result" class="result hidden"></div>
+  <div id="achievement" class="hint hidden"></div>
+  <div id="hint" class="hint hidden">Отметьте те спички, которые вы считаете правильными</div>
+</div>
+<script>
+let timerInterval;
+let selectedCount=0;
+let totalMatches=0;
+const startBtn=document.getElementById('startBtn');
+const showBtn=document.getElementById('showBtn');
+const resetBtn=document.getElementById('resetBtn');
+const matches=document.getElementById('matches');
+const timer=document.getElementById('timer');
+const result=document.getElementById('result');
+const hint=document.getElementById('hint');
+const achievement=document.getElementById('achievement');
+const startSection=document.getElementById('startSection');
+const matchCountInput=document.getElementById('matchCount');
+startBtn.onclick=startGame;
+showBtn.onclick=showMatches;
+resetBtn.onclick=resetGame;
+function startGame(){
+  const count=parseInt(matchCountInput.value);
+  if(!count||count<1||count>20)return;
+  startBtn.disabled=true;
+  totalMatches=count; selectedCount=0;
+  startSection.classList.add('hidden');
+  matches.classList.remove('hidden');
+  timer.classList.remove('hidden');
+  result.classList.add('hidden'); hint.classList.add('hidden'); achievement.classList.add('hidden');
+  generateMatches(count);
+  startTimer();
+}
+function overlaps(x,y,existing){
+  return existing.some(p=>Math.hypot(p.x-x,p.y-y)<90);
+}
+
+function generateMatches(count){
+  matches.innerHTML='';
+  const placed=[];
+  for(let i=0;i<count;i++){
+    let x,y,tries=0;
+    const marginX = 50; // запас чтобы спичка целиком помещалась
+    const marginY = 40;
+    do{
+      x = marginX + Math.random() * (matches.clientWidth - marginX * 2);
+      y = marginY + Math.random() * (matches.clientHeight - marginY * 2);
+      tries++;
+    }while(overlaps(x,y,placed) && tries < 80);
+    placed.push({x,y});
+    const m=document.createElement('div');
+    m.className='match';
+    m.style.left=`${x}px`; m.style.top=`${y}px`;
+    m.style.setProperty('--rot',`${Math.random()*360}deg`);
+    m.style.animationDelay=`${i*0.05}s`;
+    m.onclick=()=>{
+      if(!matches.classList.contains('check'))return;
+      m.classList.toggle('selected');
+      selectedCount=matches.querySelectorAll('.match.selected').length;
+      updateResult();
+    };
+    matches.appendChild(m);
+  }
+}
+function startTimer(){
+  let time = 15;
+  timer.textContent=`Осталось: ${time} сек`;
+  timerInterval=setInterval(()=>{
+    time--; timer.textContent=`Осталось: ${time} сек`;
+    if(time<=0){clearInterval(timerInterval); hideMatches();}
+  },1000);
+}
+function hideMatches(){
+  matches.classList.add('hidden'); timer.classList.add('hidden');
+  showBtn.classList.remove('hidden');
+}
+function showMatches(){
+  matches.classList.remove('hidden'); matches.classList.add('check');
+  showBtn.classList.add('hidden'); resetBtn.classList.remove('hidden');
+  hint.classList.remove('hidden'); updateResult();
+}
+function updateResult(){
+  result.textContent = `Вы отметили спичек: ${selectedCount} из ${totalMatches}`;
+  result.classList.remove('hidden');
+
+  const percent = Math.round((selectedCount / totalMatches) * 100);
+  let text = '';
+  if (percent === 100) text = '🏆 Достижение: Фотографическая память!';
+  else if (percent >= 80) text = '⭐ Достижение: Отличная память';
+  else if (percent >= 50) text = '👍 Достижение: Хороший результат';
+
+  if (text) {
+    achievement.textContent = text;
+    achievement.classList.remove('hidden');
+    localStorage.setItem('lastAchievement', text);
+  }
+}
+
+function resetGame(){
+  clearInterval(timerInterval);
+  startBtn.disabled=false;
+  startSection.classList.remove('hidden');
+  matches.classList.add('hidden'); matches.classList.remove('check');
+  showBtn.classList.add('hidden'); resetBtn.classList.add('hidden');
+  result.classList.add('hidden'); hint.classList.add('hidden');
+}
+</script>
+</body>
+</html>
