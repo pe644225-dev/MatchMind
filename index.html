@@ -9,7 +9,184 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
 <style>
-/* ... (стили без изменений) ... */
+*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,Arial,sans-serif}
+
+body{
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:#eef1f6;
+}
+
+.game{
+  width:100%;
+  max-width:520px;
+  padding:26px;
+  border-radius:22px;
+  background:#eef1f6;
+  box-shadow:12px 12px 24px #d6dae0,-12px -12px 24px #fff;
+  text-align:center;
+}
+
+h1{margin-bottom:16px}
+
+.controls-start{display:flex;flex-direction:column;gap:14px;margin-bottom:16px}
+.mode-buttons{
+  display:flex;
+  gap:10px;
+  justify-content:center;
+  flex-wrap:wrap;
+}
+
+@keyframes warnBlink{
+  0%{box-shadow:6px 6px 12px #cfd3da,-6px -6px 12px #fff}
+  25%{box-shadow:0 0 0 3px rgba(255,140,0,1)}
+  50%{box-shadow:6px 6px 12px #cfd3da,-6px -6px 12px #fff}
+  75%{box-shadow:0 0 0 3px rgba(255,140,0,1)}
+  100%{box-shadow:6px 6px 12px #cfd3da,-6px -6px 12px #fff}
+}
+
+@keyframes inputBounce{
+  0%{transform:translateY(0)}
+  30%{transform:translateY(-6px)}
+  55%{transform:translateY(0)}
+  75%{transform:translateY(-3px)}
+  100%{transform:translateY(0)}
+}
+
+button.warn{
+  animation:warnBlink 0.8s ease-in-out;
+}
+
+button{
+  padding:12px 20px;
+  font-size:15px;
+  border:none;
+  border-radius:14px;
+  background:#eef1f6;
+  cursor:pointer;
+  box-shadow:6px 6px 12px #cfd3da,-6px -6px 12px #fff;
+  transition:transform .12s ease, box-shadow .12s ease;
+}
+button:active{
+  transform:scale(.96);
+  box-shadow: inset 4px 4px 8px #cfd3da,inset -4px -4px 8px #fff;
+}
+
+button.active{outline:3px solid #4caf50}
+
+input{
+  transition: box-shadow .25s, background-color .25s;
+  width:90px;
+  padding:8px;
+  font-size:16px;
+  text-align:center;
+  border-radius:12px;
+  border:none;
+  background:#eef1f6;
+  box-shadow: inset 4px 4px 8px #cfd3da,inset -4px -4px 8px #fff
+}
+
+input.input-warn{
+  background:#fff3e0;
+  box-shadow:0 0 0 3px rgba(255,140,0,.9);
+  animation: inputBounce 0.35s ease-out;
+}
+
+.field{
+  position:relative;
+  height:320px;
+  padding:10px;
+  border-radius:18px;
+  background:#eef1f6;
+  box-shadow: inset 6px 6px 12px #cfd3da,inset -6px -6px 12px #fff;
+  overflow:hidden;
+}
+
+@media (max-width:480px){
+  .field{height:280px}
+  button{padding:14px 22px;font-size:16px}
+  .object{transform:scale(.92) rotate(var(--rot,0deg))}
+}
+
+.hidden{display:none}
+.timer{font-size:22px;color:#e74c3c;margin:14px 0}
+
+.object{
+  position:absolute;
+  animation-fill-mode:both;
+  animation-timing-function:cubic-bezier(.22,.61,.36,1);
+  transform:rotate(var(--rot,0deg))
+}
+.object.selected{
+  outline:3px solid #4caf50;
+  outline-offset:2px;
+  box-shadow:0 0 0 3px rgba(76,175,80,.35);
+}
+
+.figure{box-shadow:0 6px 10px rgba(0,0,0,.25),inset 0 2px 3px rgba(255,255,255,.6),inset 0 -3px 6px rgba(0,0,0,.25)}
+.figure::after{content:'';position:absolute;inset:3px;border-radius:inherit;background:linear-gradient(to bottom right,rgba(255,255,255,.35),rgba(255,255,255,0));pointer-events:none}
+.figure.triangle{box-shadow:none;filter:drop-shadow(0 6px 8px rgba(0,0,0,.35))}
+
+.from-top{animation-name:fromTop}
+.from-bottom{animation-name:fromBottom}
+.from-left{animation-name:fromLeft}
+.from-right{animation-name:fromRight}
+
+@keyframes fromTop{0%{transform:translateY(-120px) rotate(var(--rot)) scale(.9);opacity:0}80%{transform:translateY(0) rotate(var(--rot)) scale(1.05);opacity:1}100%{transform:translateY(0) rotate(var(--rot)) scale(1)}}
+@keyframes fromBottom{0%{transform:translateY(120px) rotate(var(--rot)) scale(.9);opacity:0}80%{transform:translateY(0) rotate(var(--rot)) scale(1.05);opacity:1}100%{transform:translateY(0) rotate(var(--rot)) scale(1)}}
+@keyframes fromLeft{0%{transform:translateX(-120px) rotate(var(--rot)) scale(.9);opacity:0}80%{transform:translateX(0) rotate(var(--rot)) scale(1.05);opacity:1}100%{transform:translateX(0) rotate(var(--rot)) scale(1)}}
+@keyframes fromRight{0%{transform:translateX(120px) rotate(var(--rot)) scale(.9);opacity:0}80%{transform:translateX(0) rotate(var(--rot)) scale(1.05);opacity:1}100%{transform:translateX(0) rotate(var(--rot)) scale(1)}}
+
+.match{width:94px;height:6px;border-radius:4px;background:linear-gradient(#deb887,#cfa36a 40%,#b88952)}
+.match::after{content:'';position:absolute;right:-6px;top:-4px;width:14px;height:14px;border-radius:50%;background:radial-gradient(circle,#ff6b6b,#b22222)}
+
+.number{
+  width:48px;height:48px;border-radius:50%;
+  background:#fff;color:#222;
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;font-weight:700
+}
+
+@keyframes pop{
+  0%{transform:scale(.85);opacity:0}
+  100%{transform:scale(1);opacity:1}
+}
+
+.instruction-step{
+  margin:12px 0;
+  font-size:18px;
+  color:#2c3e50;
+  min-height:24px;
+}
+
+.info-section {
+  margin-top: 20px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 16px;
+  box-shadow: inset 2px 2px 4px #d1d5db, inset -2px -2px 4px #ffffff;
+  text-align: justify;
+  font-size: 14px;
+  color: #495057;
+  line-height: 1.5;
+}
+
+.info-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #2c3e50;
+  text-align: center;
+}
+
+.info-section p {
+  margin: 8px 0;
+}
 </style>
 </head>
 
@@ -20,8 +197,7 @@
 <div id="startScreen" class="controls-start">
   <p style="font-size:17px;color:#2e2e2e;margin:16px 0">✏️ Подготовь: лист бумаги и карандаш (или ручку)</p>
   <div>
-    <!-- max теперь 12 -->
-    <input type="number" id="count" min="0" max="12" value="4">
+    <input type="number" id="count" min="0" max="20" value="4">
     <button id="startBtn">Начать</button>
   </div>
   <div class="mode-buttons">
@@ -70,7 +246,6 @@ const SAFE = 10;
 const CLICK_TOLERANCE = /Mobi|Android/i.test(navigator.userAgent) ? 14 : 7;
 const animDirs = ['from-top', 'from-bottom', 'from-left', 'from-right'];
 const colors = ['#e74c3c', '#3498db', '#2ecc71', '#f1c40f', '#9b59b6', '#e67e22'];
-const MAX_COUNT = 12; // ограничение
 
 const field = document.getElementById('field');
 const startBtn = document.getElementById('startBtn');
@@ -85,13 +260,13 @@ const step1 = document.getElementById('step1');
 const step2 = document.getElementById('step2');
 const step3 = document.getElementById('step3');
 
-let mode = null, total = 0, selected = 0, timer, gameActive = false;
+let mode = null, total = 0, selected = 0, timer;
 
 // Input validation
 countInput.addEventListener('input', () => {
   let v = +countInput.value;
   let corrected = false;
-  if (v > MAX_COUNT) { v = MAX_COUNT; corrected = true; }
+  if (v > 20) { v = 20; corrected = true; }
   if (v < 0) { v = 0; corrected = true; }
   countInput.value = v;
   if (corrected) {
@@ -113,10 +288,8 @@ modeBtns.forEach(b => {
 
 // Start game
 startBtn.onclick = () => {
-  if (gameActive) return; // защита от повторного запуска
-  
   const countValue = +countInput.value;
-  if (countValue < 1 || countValue > MAX_COUNT) {
+  if (countValue < 1 || countValue > 20) {
     countInput.classList.remove('input-warn');
     void countInput.offsetWidth;
     countInput.classList.add('input-warn');
@@ -132,7 +305,6 @@ startBtn.onclick = () => {
     return;
   }
   
-  gameActive = true;
   total = countValue;
   document.getElementById('startScreen').classList.add('hidden');
   step1.classList.remove('hidden');
@@ -172,7 +344,9 @@ showBtn.onclick = () => {
   updateResult();
 };
 
+// ✅ Полностью заменён: перезапуск без перезагрузки страницы
 resetBtn.onclick = () => {
+  // Сброс всего интерфейса
   field.innerHTML = '';
   field.classList.add('hidden');
   timerEl.classList.add('hidden');
@@ -184,30 +358,24 @@ resetBtn.onclick = () => {
   result.classList.add('hidden');
   achievement.classList.add('hidden');
   
+  // Возврат к стартовому экрану
   document.getElementById('startScreen').classList.remove('hidden');
   
+  // Сброс состояния
   mode = null;
   total = 0;
   selected = 0;
-  gameActive = false;
   clearInterval(timer);
   
+  // Сброс активных кнопок
   modeBtns.forEach(btn => btn.classList.remove('active'));
 };
 
-// Обработка кликов и касаний
-function handleFieldInteraction(e) {
+field.onclick = e => {
   if (!field.classList.contains('check')) return;
-  e.preventDefault();
-  
   const fr = field.getBoundingClientRect();
-  const x = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
-  const y = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
-  
-  if (!x || !y) return;
-
-  const relX = x - fr.left;
-  const relY = y - fr.top;
+  const x = e.clientX - fr.left;
+  const y = e.clientY - fr.top;
 
   field.querySelectorAll('.object').forEach(el => {
     if (el.classList.contains('selected')) return;
@@ -217,16 +385,13 @@ function handleFieldInteraction(e) {
     const bw = r.width + CLICK_TOLERANCE * 2;
     const bh = r.height + CLICK_TOLERANCE * 2;
 
-    if (relX >= bx && relX <= bx + bw && relY >= by && relY <= by + bh) {
+    if (x >= bx && x <= bx + bw && y >= by && y <= by + bh) {
       el.classList.add('selected');
       selected++;
       updateResult();
     }
   });
-}
-
-field.addEventListener('click', handleFieldInteraction);
-field.addEventListener('touchend', handleFieldInteraction);
+};
 
 function updateResult() {
   result.textContent = `Отмечено: ${selected} из ${total}`;
@@ -238,7 +403,7 @@ function updateAchievement() {
   achievement.style.animation = 'none';
   void achievement.offsetWidth;
   achievement.style.animation = 'pop .35s ease';
-  const r = total > 0 ? selected / total : 0;
+  const r = selected / total;
   achievement.textContent =
     r === 1 ? '🧠✨ Идеально!'
     : r >= 0.8 ? '🧠👍 Отлично!'
@@ -262,46 +427,39 @@ function generate() {
   const padding = 10;
   const fw = field.clientWidth;
   const fh = field.clientHeight;
-  let placed = [];
-  const maxAttempts = 5000;
-  let attempts = 0;
+  let placed = [], attempts = 0;
 
-  while (placed.length < total && attempts < maxAttempts) {
+  while (placed.length < total && attempts < 3000) {
     attempts++;
     const box = createBox();
+    field.appendChild(box.el);
+
     const x = padding + Math.random() * (fw - box.el.offsetWidth - padding * 2);
     const y = padding + Math.random() * (fh - box.el.offsetHeight - padding * 2);
     box.el.style.left = x + 'px';
     box.el.style.top = y + 'px';
 
-    document.body.appendChild(box.el); // временно в DOM для измерения
     const r2 = box.el.getBoundingClientRect();
-    document.body.removeChild(box.el);
-
     const fr = field.getBoundingClientRect();
-    const inSafeZone = (
-      r2.left >= fr.left + SAFE &&
-      r2.top >= fr.top + SAFE &&
-      r2.right <= fr.right - SAFE &&
-      r2.bottom <= fr.bottom - SAFE
-    );
 
-    const overlaps = placed.some(p => intersects(r2, p));
-
-    if (inSafeZone && !overlaps) {
-      placed.push(r2);
-      field.appendChild(box.el);
-      box.el.classList.add(animDirs[Math.floor(Math.random() * 4)]);
-      box.el.style.animationDuration = (0.4 + Math.random() * 0.6) + 's';
-      box.el.style.animationDelay = placed.length * 80 + 'ms';
+    if (
+      r2.left < fr.left + SAFE ||
+      r2.top < fr.top + SAFE ||
+      r2.right > fr.right - SAFE ||
+      r2.bottom > fr.bottom - SAFE ||
+      placed.some(p => intersects(r2, p))
+    ) {
+      field.removeChild(box.el);
+      continue;
     }
+
+    placed.push(r2);
+    box.el.classList.add(animDirs[Math.floor(Math.random() * 4)]);
+    box.el.style.animationDuration = (0.4 + Math.random() * 0.6) + 's';
+    box.el.style.animationDelay = placed.length * 80 + 'ms';
   }
 
-  // Если не все объекты разместились — корректируем total
-  if (placed.length < total) {
-    console.warn(`Only ${placed.length} of ${total} objects placed.`);
-    total = placed.length;
-  }
+  if (placed.length < total) generate();
 }
 
 function createBox() {
@@ -341,11 +499,12 @@ function createBox() {
   return { el };
 }
 
-// Telegram WebApp init
+// ✅ Инициализация Telegram WebApp
 if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
   Telegram.WebApp.expand();
-  Telegram.WebApp.disableVerticalSwipes();
+  Telegram.WebApp.disableVerticalSwipes(); // предотвращает закрытие свайпом
 }
 </script>
 </body>
 </html>
+
