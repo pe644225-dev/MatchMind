@@ -146,9 +146,26 @@ input.input-warn{
   box-shadow:0 0 0 3px rgba(76,175,80,.35);
 }
 
-.figure{box-shadow:0 6px 10px rgba(0,0,0,.25),inset 0 2px 3px rgba(255,255,255,.6),inset 0 -3px 6px rgba(0,0,0,.25)}
-.figure::after{content:'';position:absolute;inset:3px;border-radius:inherit;background:linear-gradient(to bottom right,rgba(255,255,255,.35),rgba(255,255,255,0));pointer-events:none}
-.figure.triangle{box-shadow:none;filter:drop-shadow(0 6px 8px rgba(0,0,0,.35))}
+/* ✅ ОБНОВЛЕНО: фигуры уменьшены на 20% */
+.figure{
+  box-shadow:0 6px 10px rgba(0,0,0,.25),inset 0 2px 3px rgba(255,255,255,.6),inset 0 -3px 6px rgba(0,0,0,.25);
+  width: 48px;
+  height: 48px;
+}
+.figure::after{
+  content:'';position:absolute;inset:3px;border-radius:inherit;
+  background:linear-gradient(to bottom right,rgba(255,255,255,.35),rgba(255,255,255,0));
+  pointer-events:none;
+}
+.figure.triangle{
+  box-shadow:none;
+  filter:drop-shadow(0 4px 6px rgba(0,0,0,.3));
+  width: 0 !important;
+  height: 0 !important;
+  border-left: 24px solid transparent;
+  border-right: 24px solid transparent;
+  border-bottom: 48px solid;
+}
 
 .from-top{animation-name:fromTop}
 .from-bottom{animation-name:fromBottom}
@@ -314,7 +331,6 @@ modeBtns.forEach(b => {
   };
 });
 
-// ✅ ИСПРАВЛЕНО: явно убираем режим проверки при старте
 startBtn.onclick = () => {
   const countValue = +countInput.value;
   if (countValue < 1 || countValue > 15) {
@@ -337,7 +353,7 @@ startBtn.onclick = () => {
   document.getElementById('startScreen').classList.add('hidden');
   step1.classList.remove('hidden');
   field.classList.remove('hidden');
-  field.classList.remove('check'); // 🔒 ГАРАНТИЯ: нельзя отметить во время запоминания
+  field.classList.remove('check');
   timerEl.classList.remove('hidden');
   generate();
   startTimer();
@@ -366,7 +382,7 @@ showBtn.onclick = () => {
   step3.classList.add('hidden');
   step4.classList.remove('hidden');
   field.classList.remove('hidden');
-  field.classList.add('check'); // ← разрешаем отметку
+  field.classList.add('check');
   showBtn.classList.add('hidden');
   resetBtn.classList.remove('hidden');
   updateResult();
@@ -395,9 +411,8 @@ resetBtn.onclick = () => {
   modeBtns.forEach(btn => btn.classList.remove('active'));
 };
 
-// ✅ КЛИКИ РАБОТАЮТ ТОЛЬКО В РЕЖИМЕ 'check'
 field.onclick = e => {
-  if (!field.classList.contains('check')) return; // ← блокировка во время запоминания
+  if (!field.classList.contains('check')) return;
   const fr = field.getBoundingClientRect();
   const x = e.clientX - fr.left;
   const y = e.clientY - fr.top;
@@ -473,18 +488,18 @@ function createBox() {
 
     if (shape === 'triangle') {
       el.classList.add('triangle');
-      el.style.borderLeft = '30px solid transparent';
-      el.style.borderRight = '30px solid transparent';
-      el.style.borderBottom = '60px solid ' + color;
-      width = 60;
-      height = 60;
+      el.style.borderLeft = '24px solid transparent';
+      el.style.borderRight = '24px solid transparent';
+      el.style.borderBottom = '48px solid ' + color;
+      width = 48;
+      height = 48;
     } else {
-      el.style.width = '60px';
-      el.style.height = '60px';
+      el.style.width = '48px';
+      el.style.height = '48px';
       el.style.background = color;
       if (shape === 'circle') el.style.borderRadius = '50%';
-      width = 60;
-      height = 60;
+      width = 48;
+      height = 48;
     }
   }
 
