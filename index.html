@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <title>MatchMind: ФотоПамять — v1.0</title>
 
-<!-- Telegram WebApp SDK -->
+<!-- Telegram WebApp SDK — исправленный URL без пробелов -->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
 <style>
@@ -197,11 +197,11 @@ input.input-warn{
 <div id="startScreen" class="controls-start">
   <p style="font-size:17px;color:#2e2e2e;margin:16px 0">✏️ Подготовь: лист бумаги и карандаш (или ручку)</p>
   <div>
-    <input type="number" id="count" min="0" max="15" value="4">
+    <input type="number" id="count" min="1" max="15" value="4">
     <button id="startBtn">Начать</button>
   </div>
   <div class="mode-buttons">
-    <button data-mode="matches">Спички</button>
+    <button data-mode="matches" class="active">Спички</button>
     <button data-mode="figures">Фигуры</button>
     <button data-mode="numbers">Числа</button>
   </div>
@@ -260,14 +260,18 @@ const step1 = document.getElementById('step1');
 const step2 = document.getElementById('step2');
 const step3 = document.getElementById('step3');
 
-let mode = null, total = 0, selected = 0, timer;
+let mode = 'matches', total = 4, selected = 0, timer;
+
+// Initialize Telegram WebApp safely
+if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
+  Telegram.WebApp.expand();
+  Telegram.WebApp.disableVerticalSwipes();
+}
 
 // Input validation
 countInput.addEventListener('input', () => {
   let v = +countInput.value;
-  let maxVal = 15;
-  if (mode === 'figures' || mode === 'numbers') maxVal = 10;
-  
+  let maxVal = (mode === 'matches') ? 15 : 10;
   let corrected = false;
   if (v > maxVal) { v = maxVal; corrected = true; }
   if (v < 1) { v = 1; corrected = true; }
@@ -287,9 +291,7 @@ modeBtns.forEach(b => {
     b.classList.add('active');
     mode = b.dataset.mode;
     
-    // Update max value and validate current input
-    let maxVal = 15;
-    if (mode === 'figures' || mode === 'numbers') maxVal = 10;
+    let maxVal = (mode === 'matches') ? 15 : 10;
     countInput.max = maxVal;
     if (+countInput.value > maxVal) {
       countInput.value = maxVal;
@@ -300,22 +302,13 @@ modeBtns.forEach(b => {
 // Start game
 startBtn.onclick = () => {
   const countValue = +countInput.value;
-  let maxVal = 15;
-  if (mode === 'figures' || mode === 'numbers') maxVal = 10;
+  const maxVal = (mode === 'matches') ? 15 : 10;
   
   if (countValue < 1 || countValue > maxVal) {
     countInput.classList.remove('input-warn');
     void countInput.offsetWidth;
     countInput.classList.add('input-warn');
     setTimeout(() => countInput.classList.remove('input-warn'), 350);
-    return;
-  }
-  if (!mode) {
-    modeBtns.forEach(btn => {
-      btn.classList.remove('warn');
-      void btn.offsetWidth;
-      btn.classList.add('warn');
-    });
     return;
   }
   
@@ -370,11 +363,11 @@ resetBtn.onclick = () => {
   result.classList.add('hidden');
   achievement.classList.add('hidden');
   document.getElementById('startScreen').classList.remove('hidden');
-  mode = null;
-  total = 0;
+  mode = 'matches';
+  total = 4;
   selected = 0;
   clearInterval(timer);
-  modeBtns.forEach(btn => btn.classList.remove('active'));
+  modeBtns[0].click();
 };
 
 field.onclick = e => {
@@ -418,7 +411,7 @@ function updateAchievement() {
   achievement.classList.remove('hidden');
 }
 
-// ✅ ОПТИМИЗИРОВАННАЯ ФУНКЦИЯ ГЕНЕРАЦИИ - БЕЗ ЗАВИСАНИЙ
+// ✅ ОПТИМИЗИРОВАННАЯ ГЕНЕРАЦИЯ БЕЗ ЗАВИСАНИЙ
 function generate() {
   field.innerHTML = '';
   selected = 0;
@@ -427,7 +420,7 @@ function generate() {
   const fw = field.clientWidth;
   const fh = field.clientHeight;
   
-  // Предопределенные размеры объектов
+  // Предопределенные размеры
   let objWidth, objHeight;
   if (mode === 'matches') {
     objWidth = 94; objHeight = 6;
@@ -437,41 +430,40 @@ function generate() {
     objWidth = 60; objHeight = 60;
   }
   
-  // Рассчитываем максимальное количество объектов, которые гарантированно поместятся
+  // Рассчитываем сетку
   const availableWidth = fw - padding * 2;
   const availableHeight = fh - padding * 2;
   const minSpacing = SAFE * 2;
   
-  const maxPerRow = Math.floor(availableWidth / (objWidth + minSpacing));
-  const maxRows = Math.floor(availableHeight / (objHeight + minSpacing));
-  const maxPossible = Math.max(1, Math.min(total, maxPerRow * maxRows, 10));
+  const maxPerRow = Math.max(1, Math.floor(availableWidth / (objWidth + minSpacing)));
+  const maxRows = Math.max(1, Math.floor(availableHeight / (objHeight + minSpacing)));
+  const maxPossible = Math.min(total, maxPerRow * maxRows, 12);
   
-  // Генерируем объекты по сетке
+  // Генерация по сетке
   for (let i = 0; i < maxPossible; i++) {
     const box = createBox();
     
     const row = Math.floor(i / maxPerRow);
     const col = i % maxPerRow;
     
-    // Рассчитываем позицию с небольшим случайным смещением для естественности
     const cellWidth = availableWidth / maxPerRow;
     const cellHeight = availableHeight / maxRows;
     
+    // Добавляем небольшое случайное смещение для естественности
     const x = padding + col * cellWidth + SAFE + Math.random() * (cellWidth - objWidth - minSpacing);
     const y = padding + row * cellHeight + SAFE + Math.random() * (cellHeight - objHeight - minSpacing);
     
     box.el.style.left = x + 'px';
     box.el.style.top = y + 'px';
     
-    // Добавляем анимацию
     box.el.classList.add(animDirs[Math.floor(Math.random() * 4)]);
-    box.el.style.animationDuration = (0.4 + Math.random() * 0.5) + 's';
-    box.el.style.animationDelay = i * 60 + 'ms';
+    box.el.style.animationDuration = (0.4 + Math.random() * 0.6) + 's';
+    box.el.style.animationDelay = i * 80 + 'ms';
     
     field.appendChild(box.el);
   }
   
-  total = maxPossible; // Обновляем фактическое количество объектов
+  total = maxPossible;
 }
 
 function createBox() {
@@ -509,12 +501,6 @@ function createBox() {
   }
 
   return { el };
-}
-
-// Telegram WebApp initialization
-if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
-  Telegram.WebApp.expand();
-  Telegram.WebApp.disableVerticalSwipes();
 }
 </script>
 </body>
