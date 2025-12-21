@@ -94,6 +94,7 @@
       appearance: none;
       -moz-appearance: textfield;
       -webkit-appearance: none;
+      transition: box-shadow 0.2s ease;
     }
 
     input[type="number"]::-webkit-inner-spin-button,
@@ -119,6 +120,30 @@
     button:active {
       transform: scale(0.98);
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    /* Мигание при ошибке */
+    @keyframes warnBlink {
+      0%, 50%, 100% { box-shadow: 0 0 0 2px #ddd; }
+      25%, 75% { box-shadow: 0 0 0 3px rgba(255, 140, 0, 1); }
+    }
+
+    button.warn {
+      animation: warnBlink 0.8s ease-in-out;
+    }
+
+    input.input-warn {
+      background: #fff3e0;
+      box-shadow: 0 0 0 3px rgba(255, 140, 0, 0.9) !important;
+      animation: inputBounce 0.35s ease-out;
+    }
+
+    @keyframes inputBounce {
+      0% { transform: translateY(0); }
+      30% { transform: translateY(-6px); }
+      55% { transform: translateY(0); }
+      75% { transform: translateY(-3px); }
+      100% { transform: translateY(0); }
     }
 
     .mode-buttons {
@@ -258,33 +283,6 @@
       0% { transform: scale(0.85); opacity: 0; }
       100% { transform: scale(1); opacity: 1; }
     }
-
-    .info-section {
-      margin-top: 20px;
-      padding: 14px;
-      background: #f8f9fa;
-      border-radius: 16px;
-      box-shadow: inset 2px 2px 4px #d1d5db, inset -2px -2px 4px #ffffff;
-      text-align: justify;
-      font-size: 14px;
-      color: #495057;
-      line-height: 1.5;
-    }
-
-    .info-section h3 {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 12px;
-      font-size: 16px;
-      font-weight: 600;
-      color: #2c3e50;
-      text-align: center;
-    }
-
-    .info-section p {
-      margin: 8px 0;
-    }
   </style>
 </head>
 <body>
@@ -295,7 +293,7 @@
       <div class="prep">Подготовь: лист бумаги и карандаш (или ручку)</div>
 
       <div class="count-control">
-        <input type="number" id="count" min="1" max="20" value="20" inputmode="numeric" pattern="[0-9]*" />
+        <input type="number" id="count" min="1" max="15" value="15" inputmode="numeric" pattern="[0-9]*" />
         <button id="startBtn">Начать</button>
       </div>
 
@@ -358,11 +356,26 @@
 
     let mode = null, total = 0, selected = 0, timer;
 
-    // Input validation
+    // Input validation with blink effect
     countInput.addEventListener('input', () => {
-      let v = Math.min(20, Math.max(1, parseInt(countInput.value) || 1));
-      countInput.value = v;
+      let v = parseInt(countInput.value) || 1;
+      if (v > 15) {
+        v = 15;
+        countInput.value = v;
+        triggerWarn(countInput);
+      } else if (v < 1) {
+        v = 1;
+        countInput.value = v;
+        triggerWarn(countInput);
+      }
     });
+
+    function triggerWarn(element) {
+      element.classList.remove('input-warn');
+      void element.offsetWidth; // force reflow
+      element.classList.add('input-warn');
+      setTimeout(() => element.classList.remove('input-warn'), 350);
+    }
 
     // Mode selection
     modeBtns.forEach(btn => {
@@ -583,4 +596,3 @@
   </script>
 </body>
 </html>
-
