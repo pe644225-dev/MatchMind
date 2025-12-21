@@ -55,7 +55,7 @@ h1{margin-bottom:16px}
   100%{transform:translateY(0)}
 }
 
-/* Bounce + glow animation for dynamic instruction steps */
+/* Bounce + glow animation */
 @keyframes bounce {
   0%, 20%, 53%, 80%, 100% {
     transform: translate3d(0,0,0);
@@ -182,7 +182,6 @@ input.input-warn{
   min-height:24px;
 }
 
-/* Apply bounce + glow only when visible (not hidden) */
 .instruction-step:not(.hidden) {
   animation: bounce 0.7s ease-out forwards;
 }
@@ -252,6 +251,10 @@ input.input-warn{
 <div id="step1" class="instruction-step hidden">🧠 <b>Запомни объекты</b></div>
 
 <div id="timer" class="timer hidden"></div>
+
+<!-- ✅ ТЕКСТ "ОТМЕТЬ СОВПАДЕНИЯ" ТЕПЕРЬ РАСПОЛОЖЕН СРАЗУ НАД ПОЛЕМ -->
+<div id="step4" class="instruction-step hidden">📝 <b>Отметь совпадения</b></div>
+
 <div id="field" class="field hidden"></div>
 
 <div id="step2" class="instruction-step hidden">📝 <b>Нарисуй их на бумаге</b></div>
@@ -261,9 +264,6 @@ input.input-warn{
 </div>
 
 <div id="step3" class="instruction-step hidden">👀 <b>Нажми «Показать» и отметь совпадения</b></div>
-
-<!-- ✅ ВЕРНУТО НА ПРАВИЛЬНОЕ МЕСТО: над полем, под кнопкой "Показать" -->
-<div id="step4" class="instruction-step hidden">📝 <b>Отметь совпадения</b></div>
 
 <button id="resetBtn" class="hidden" style="margin-top:8px">Новая попытка</button>
 
@@ -289,7 +289,7 @@ const modeBtns = document.querySelectorAll('.mode-buttons button');
 const step1 = document.getElementById('step1');
 const step2 = document.getElementById('step2');
 const step3 = document.getElementById('step3');
-const step4 = document.getElementById('step4'); // <-- НОВАЯ ПЕРЕМЕННАЯ
+const step4 = document.getElementById('step4');
 
 let mode = null, total = 0, selected = 0, timer;
 
@@ -366,14 +366,16 @@ function startTimer() {
 showBtn.onclick = () => {
   step2.classList.add('hidden');
   step3.classList.add('hidden');
-  step4.classList.remove('hidden'); // <-- ПОКАЗАТЬ НОВУЮ ИНСТРУКЦИЮ
-  resetBtn.style.marginTop = '5px';
-  result.style.marginTop = '7px';
+  step4.classList.remove('hidden'); // ← ПОКАЗАТЬ НАД ПОЛЕМ
   field.classList.remove('hidden');
   field.classList.add('check');
   showBtn.classList.add('hidden');
   resetBtn.classList.remove('hidden');
   updateResult();
+  
+  // Убираем лишние отступы
+  resetBtn.style.marginTop = '8px';
+  result.style.marginTop = '7px';
 };
 
 resetBtn.onclick = () => {
@@ -383,7 +385,7 @@ resetBtn.onclick = () => {
   step1.classList.add('hidden');
   step2.classList.add('hidden');
   step3.classList.add('hidden');
-  step4.classList.add('hidden'); // <-- СКРЫТЬ НОВУЮ ИНСТРУКЦИЮ
+  step4.classList.add('hidden'); // ← СКРЫТЬ
   showBtn.classList.add('hidden');
   resetBtn.classList.add('hidden');
   result.classList.add('hidden');
@@ -532,3 +534,4 @@ if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
 </script>
 </body>
 </html>
+
