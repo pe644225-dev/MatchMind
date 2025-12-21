@@ -296,9 +296,9 @@ modeBtns.forEach(b => {
 
 function getMaxCountForMode() {
   if (mode === 'figures' || mode === 'numbers') {
-    return 12; // Smaller objects can't fit 20 in the field
+    return 10; // Reduced for mobile performance
   }
-  return 20; // Matches are very thin, can fit more
+  return 15; // Reduced from 20 for better mobile performance
 }
 
 // Start game
@@ -429,77 +429,70 @@ function updateAchievement() {
   achievement.classList.remove('hidden');
 }
 
+// Optimized intersection check using simple rectangle math
 function intersects(a, b) {
-  return !(
-    a.left + a.width <= b.left ||
-    a.left >= b.left + b.width ||
-    a.top + a.height <= b.top ||
-    a.top >= b.top + b.height
-  );
+  return !(a.x + a.width <= b.x || b.x + b.width <= a.x || a.y + a.height <= b.y || b.y + b.height <= a.y);
+}
+
+// Predefined object sizes to avoid getBoundingClientRect calls during generation
+function getObjectDimensions() {
+  if (mode === 'matches') {
+    return { width: 94, height: 6 };
+  } else if (mode === 'numbers') {
+    return { width: 48, height: 48 };
+  } else { // figures
+    return { width: 60, height: 60 };
+  }
 }
 
 function generate() {
-  // Prevent infinite loops by limiting generation attempts
-  const MAX_GENERATION_TRIES = 15;
-  let actualTotal = total;
+  field.innerHTML = '';
+  selected = 0;
   
-  for (let tryNum = 0; tryNum < MAX_GENERATION_TRIES; tryNum++) {
-    field.innerHTML = '';
-    selected = 0;
-    const padding = 10;
-    const fw = field.clientWidth;
-    const fh = field.clientHeight;
-    let placed = [], attempts = 0;
-    let successfullyPlaced = 0;
-
-    while (successfullyPlaced < actualTotal && attempts < 3000) {
-      attempts++;
-      const box = createBox();
-      field.appendChild(box.el);
-
-      const x = padding + Math.random() * (fw - box.el.offsetWidth - padding * 2);
-      const y = padding + Math.random() * (fh - box.el.offsetHeight - padding * 2);
-      box.el.style.left = x + 'px';
-      box.el.style.top = y + 'px';
-
-      const r2 = box.el.getBoundingClientRect();
-      const fr = field.getBoundingClientRect();
-
-      if (
-        r2.left < fr.left + SAFE ||
-        r2.top < fr.top + SAFE ||
-        r2.right > fr.right - SAFE ||
-        r2.bottom > fr.bottom - SAFE ||
-        placed.some(p => intersects(r2, p))
-      ) {
-        field.removeChild(box.el);
-        continue;
-      }
-
-      placed.push(r2);
-      successfullyPlaced++;
-      box.el.classList.add(animDirs[Math.floor(Math.random() * 4)]);
-      box.el.style.animationDuration = (0.4 + Math.random() * 0.6) + 's';
-      box.el.style.animationDelay = successfullyPlaced * 80 + 'ms';
-    }
-
-    // If we successfully placed all objects, we're done
-    if (successfullyPlaced === actualTotal) {
-      return;
-    }
+  const padding = 10;
+  const fw = field.clientWidth - padding * 2;
+  const fh = field.clientHeight - padding * 2;
+  const objDim = getObjectDimensions();
+  
+  // Calculate maximum possible objects that can fit
+  const maxHorizontal = Math.floor(fw / (objDim.width + SAFE * 2));
+  const maxVertical = Math.floor(fh / (objDim.height + SAFE * 2));
+  const maxPossible = Math.max(1, Math.min(total, maxHorizontal * maxVertical, 12));
+  
+  // Use grid-based placement to avoid expensive collision detection
+  const placed = [];
+  const gridSizeX = Math.ceil(Math.sqrt(maxPossible));
+  const gridSizeY = Math.ceil(maxPossible / gridSizeX);
+  const cellWidth = fw / gridSizeX;
+  const cellHeight = fh / gridSizeY;
+  
+  for (let i = 0; i < maxPossible; i++) {
+    const box = createBox();
     
-    // If this was the last try, use whatever we could place
-    if (tryNum === MAX_GENERATION_TRIES - 1) {
-      total = successfullyPlaced;
-      return;
-    }
+    // Place in grid cell with some random offset
+    const gridX = i % gridSizeX;
+    const gridY = Math.floor(i / gridSizeX);
     
-    // Otherwise, try again with potentially fewer objects
-    // Only reduce if we couldn't place at least half
-    if (successfullyPlaced < actualTotal * 0.7 && actualTotal > 1) {
-      actualTotal = Math.max(1, Math.floor(actualTotal * 0.8));
-    }
+    const cellLeft = gridX * cellWidth;
+    const cellTop = gridY * cellHeight;
+    
+    const offsetX = Math.random() * (cellWidth - objDim.width - SAFE * 2) + SAFE;
+    const offsetY = Math.random() * (cellHeight - objDim.height - SAFE * 2) + SAFE;
+    
+    const x = padding + cellLeft + offsetX;
+    const y = padding + cellTop + offsetY;
+    
+    box.el.style.left = x + 'px';
+    box.el.style.top = y + 'px';
+    
+    field.appendChild(box.el);
+    
+    box.el.classList.add(animDirs[Math.floor(Math.random() * 4)]);
+    box.el.style.animationDuration = (0.4 + Math.random() * 0.6) + 's';
+    box.el.style.animationDelay = i * 80 + 'ms';
   }
+  
+  total = maxPossible; // Update total to actual placed count
 }
 
 function createBox() {
