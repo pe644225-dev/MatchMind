@@ -252,7 +252,7 @@ input.input-warn{
 
 <div id="timer" class="timer hidden"></div>
 
-<!-- ✅ ТЕКСТ "ОТМЕТЬ СОВПАДЕНИЯ" ТЕПЕРЬ РАСПОЛОЖЕН СРАЗУ НАД ПОЛЕМ -->
+<!-- Текст "Отметь совпадения" над полем -->
 <div id="step4" class="instruction-step hidden">📝 <b>Отметь совпадения</b></div>
 
 <div id="field" class="field hidden"></div>
@@ -366,14 +366,13 @@ function startTimer() {
 showBtn.onclick = () => {
   step2.classList.add('hidden');
   step3.classList.add('hidden');
-  step4.classList.remove('hidden'); // ← ПОКАЗАТЬ НАД ПОЛЕМ
+  step4.classList.remove('hidden');
   field.classList.remove('hidden');
   field.classList.add('check');
   showBtn.classList.add('hidden');
   resetBtn.classList.remove('hidden');
   updateResult();
   
-  // Убираем лишние отступы
   resetBtn.style.marginTop = '8px';
   result.style.marginTop = '7px';
 };
@@ -385,7 +384,7 @@ resetBtn.onclick = () => {
   step1.classList.add('hidden');
   step2.classList.add('hidden');
   step3.classList.add('hidden');
-  step4.classList.add('hidden'); // ← СКРЫТЬ
+  step4.classList.add('hidden');
   showBtn.classList.add('hidden');
   resetBtn.classList.add('hidden');
   result.classList.add('hidden');
@@ -439,13 +438,50 @@ function updateAchievement() {
   achievement.classList.remove('hidden');
 }
 
-function intersects(a, b) {
-  return !(
-    a.left + a.width <= b.left ||
-    a.left >= b.left + b.width ||
-    a.top + a.height <= b.top ||
-    a.top >= b.top + b.height
-  );
+// ✅ ИСПРАВЛЕННЫЕ ФУНКЦИИ — БЕЗ ЗАВИСАНИЙ
+function createBox() {
+  const el = document.createElement('div');
+  el.classList.add('object');
+
+  let width, height;
+
+  if (mode === 'matches') {
+    el.classList.add('match');
+    el.style.setProperty('--rot', `${Math.random() * 360}deg`);
+    width = 94;
+    height = 6;
+  } else if (mode === 'numbers') {
+    el.classList.add('number');
+    el.textContent = Math.floor(Math.random() * 10);
+    width = 48;
+    height = 48;
+  } else if (mode === 'figures') {
+    el.classList.add('figure');
+    const shape = ['square', 'circle', 'triangle'][Math.floor(Math.random() * 3)];
+    const color = colors[Math.floor(Math.random() * colors.length)];
+
+    if (shape === 'triangle') {
+      el.classList.add('triangle');
+      el.style.borderLeft = '30px solid transparent';
+      el.style.borderRight = '30px solid transparent';
+      el.style.borderBottom = '60px solid ' + color;
+      width = 60;
+      height = 60;
+    } else {
+      el.style.width = '60px';
+      el.style.height = '60px';
+      el.style.background = color;
+      if (shape === 'circle') el.style.borderRadius = '50%';
+      width = 60;
+      height = 60;
+    }
+  }
+
+  el.style.width = width + 'px';
+  el.style.height = height + 'px';
+  el.style.position = 'absolute';
+
+  return { el, width, height };
 }
 
 function generate() {
@@ -454,76 +490,71 @@ function generate() {
   const padding = 10;
   const fw = field.clientWidth;
   const fh = field.clientHeight;
-  let placed = [], attempts = 0;
+  let placed = [];
+  const maxTotalAttempts = 5000;
+  let totalAttempts = 0;
 
-  while (placed.length < total && attempts < 3000) {
-    attempts++;
+  while (placed.length < total && totalAttempts < maxTotalAttempts) {
+    totalAttempts++;
     const box = createBox();
-    field.appendChild(box.el);
+    const { el, width, height } = box;
 
-    const x = padding + Math.random() * (fw - box.el.offsetWidth - padding * 2);
-    const y = padding + Math.random() * (fh - box.el.offsetHeight - padding * 2);
-    box.el.style.left = x + 'px';
-    box.el.style.top = y + 'px';
+    const x = padding + Math.random() * (fw - width - padding * 2);
+    const y = padding + Math.random() * (fh - height - padding * 2);
 
-    const r2 = box.el.getBoundingClientRect();
-    const fr = field.getBoundingClientRect();
+    const rect = {
+      left: x,
+      top: y,
+      right: x + width,
+      bottom: y + height
+    };
 
+    // Проверка отступов от краёв
     if (
-      r2.left < fr.left + SAFE ||
-      r2.top < fr.top + SAFE ||
-      r2.right > fr.right - SAFE ||
-      r2.bottom > fr.bottom - SAFE ||
-      placed.some(p => intersects(r2, p))
+      rect.left < SAFE ||
+      rect.top < SAFE ||
+      rect.right > fw - SAFE ||
+      rect.bottom > fh - SAFE
     ) {
-      field.removeChild(box.el);
       continue;
     }
 
-    placed.push(r2);
-    box.el.classList.add(animDirs[Math.floor(Math.random() * 4)]);
-    box.el.style.animationDuration = (0.4 + Math.random() * 0.6) + 's';
-    box.el.style.animationDelay = placed.length * 80 + 'ms';
+    // Проверка коллизий
+    let hasCollision = false;
+    for (const p of placed) {
+      if (!(rect.right <= p.left || rect.left >= p.right || rect.bottom <= p.top || rect.top >= p.bottom)) {
+        hasCollision = true;
+        break;
+      }
+    }
+
+    if (hasCollision) continue;
+
+    // Размещаем объект
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    field.appendChild(el);
+
+    placed.push({
+      left: rect.left,
+      top: rect.top,
+      right: rect.right,
+      bottom: rect.bottom
+    });
+
+    el.classList.add(animDirs[Math.floor(Math.random() * 4)]);
+    el.style.animationDuration = (0.4 + Math.random() * 0.6) + 's';
+    el.style.animationDelay = (placed.length - 1) * 80 + 'ms';
   }
 
-  if (placed.length < total) generate();
-}
-
-function createBox() {
-  const el = document.createElement('div');
-  el.classList.add('object');
-
-  if (mode === 'matches') {
-    el.classList.add('match');
-    el.style.setProperty('--rot', `${Math.random() * 360}deg`);
-  }
-
-  if (mode === 'numbers') {
-    el.classList.add('number');
-    el.textContent = Math.floor(Math.random() * 10);
-  }
-
-  if (mode === 'figures') {
-    el.classList.add('figure');
-    const shape = ['square', 'circle', 'triangle'][Math.floor(Math.random() * 3)];
-    const color = colors[Math.floor(Math.random() * colors.length)];
-
-    if (shape === 'triangle') {
-      el.classList.add('triangle');
-      el.style.width = '0';
-      el.style.height = '0';
-      el.style.borderLeft = '30px solid transparent';
-      el.style.borderRight = '30px solid transparent';
-      el.style.borderBottom = '60px solid ' + color;
-    } else {
-      el.style.width = '60px';
-      el.style.height = '60px';
-      el.style.background = color;
-      if (shape === 'circle') el.style.borderRadius = '50%';
+  // Если не удалось разместить все — корректируем total
+  if (placed.length < total) {
+    total = placed.length || 1; // минимум 1 объект
+    if (placed.length === 0) {
+      // Редкий крайний случай — рекурсивный вызов с 1 объектом
+      setTimeout(() => generate(), 0);
     }
   }
-
-  return { el };
 }
 
 // Telegram WebApp
