@@ -8,13 +8,6 @@
 <!-- Telegram WebApp SDK -->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-<!-- Telegram / OpenGraph Preview -->
-<meta property="og:title" content="MatchMind" />
-<meta property="og:description" content="Психологический матчинг внутри Telegram" />
-<meta property="og:image" content="https://pe644225-dev.github.io/MatchMind/preview.png" />
-<meta property="og:url" content="https://pe644225-dev.github.io/MatchMind/" />
-<meta property="og:type" content="website" />
-
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,Arial,sans-serif}
 
@@ -269,11 +262,12 @@ const step3 = document.getElementById('step3');
 
 let mode = null, total = 0, selected = 0, timer;
 
-// Input validation
+// Input validation with dynamic max based on mode
 countInput.addEventListener('input', () => {
   let v = +countInput.value;
+  let maxVal = getMaxCountForMode();
   let corrected = false;
-  if (v > 20) { v = 20; corrected = true; }
+  if (v > maxVal) { v = maxVal; corrected = true; }
   if (v < 0) { v = 0; corrected = true; }
   countInput.value = v;
   if (corrected) {
@@ -284,19 +278,35 @@ countInput.addEventListener('input', () => {
   }
 });
 
-// Mode selection
+// Mode selection with dynamic max update
 modeBtns.forEach(b => {
   b.onclick = () => {
     modeBtns.forEach(x => x.classList.remove('active'));
     b.classList.add('active');
     mode = b.dataset.mode;
+    
+    // Update max value based on selected mode
+    const maxVal = getMaxCountForMode();
+    countInput.max = maxVal;
+    if (+countInput.value > maxVal) {
+      countInput.value = maxVal;
+    }
   };
 });
+
+function getMaxCountForMode() {
+  if (mode === 'figures' || mode === 'numbers') {
+    return 12; // Smaller objects can't fit 20 in the field
+  }
+  return 20; // Matches are very thin, can fit more
+}
 
 // Start game
 startBtn.onclick = () => {
   const countValue = +countInput.value;
-  if (countValue < 1 || countValue > 20) {
+  const maxVal = getMaxCountForMode();
+  
+  if (countValue < 1 || countValue > maxVal) {
     countInput.classList.remove('input-warn');
     void countInput.offsetWidth;
     countInput.classList.add('input-warn');
@@ -429,44 +439,67 @@ function intersects(a, b) {
 }
 
 function generate() {
-  field.innerHTML = '';
-  selected = 0;
-  const padding = 10;
-  const fw = field.clientWidth;
-  const fh = field.clientHeight;
-  let placed = [], attempts = 0;
+  // Prevent infinite loops by limiting generation attempts
+  const MAX_GENERATION_TRIES = 15;
+  let actualTotal = total;
+  
+  for (let tryNum = 0; tryNum < MAX_GENERATION_TRIES; tryNum++) {
+    field.innerHTML = '';
+    selected = 0;
+    const padding = 10;
+    const fw = field.clientWidth;
+    const fh = field.clientHeight;
+    let placed = [], attempts = 0;
+    let successfullyPlaced = 0;
 
-  while (placed.length < total && attempts < 3000) {
-    attempts++;
-    const box = createBox();
-    field.appendChild(box.el);
+    while (successfullyPlaced < actualTotal && attempts < 3000) {
+      attempts++;
+      const box = createBox();
+      field.appendChild(box.el);
 
-    const x = padding + Math.random() * (fw - box.el.offsetWidth - padding * 2);
-    const y = padding + Math.random() * (fh - box.el.offsetHeight - padding * 2);
-    box.el.style.left = x + 'px';
-    box.el.style.top = y + 'px';
+      const x = padding + Math.random() * (fw - box.el.offsetWidth - padding * 2);
+      const y = padding + Math.random() * (fh - box.el.offsetHeight - padding * 2);
+      box.el.style.left = x + 'px';
+      box.el.style.top = y + 'px';
 
-    const r2 = box.el.getBoundingClientRect();
-    const fr = field.getBoundingClientRect();
+      const r2 = box.el.getBoundingClientRect();
+      const fr = field.getBoundingClientRect();
 
-    if (
-      r2.left < fr.left + SAFE ||
-      r2.top < fr.top + SAFE ||
-      r2.right > fr.right - SAFE ||
-      r2.bottom > fr.bottom - SAFE ||
-      placed.some(p => intersects(r2, p))
-    ) {
-      field.removeChild(box.el);
-      continue;
+      if (
+        r2.left < fr.left + SAFE ||
+        r2.top < fr.top + SAFE ||
+        r2.right > fr.right - SAFE ||
+        r2.bottom > fr.bottom - SAFE ||
+        placed.some(p => intersects(r2, p))
+      ) {
+        field.removeChild(box.el);
+        continue;
+      }
+
+      placed.push(r2);
+      successfullyPlaced++;
+      box.el.classList.add(animDirs[Math.floor(Math.random() * 4)]);
+      box.el.style.animationDuration = (0.4 + Math.random() * 0.6) + 's';
+      box.el.style.animationDelay = successfullyPlaced * 80 + 'ms';
     }
 
-    placed.push(r2);
-    box.el.classList.add(animDirs[Math.floor(Math.random() * 4)]);
-    box.el.style.animationDuration = (0.4 + Math.random() * 0.6) + 's';
-    box.el.style.animationDelay = placed.length * 80 + 'ms';
+    // If we successfully placed all objects, we're done
+    if (successfullyPlaced === actualTotal) {
+      return;
+    }
+    
+    // If this was the last try, use whatever we could place
+    if (tryNum === MAX_GENERATION_TRIES - 1) {
+      total = successfullyPlaced;
+      return;
+    }
+    
+    // Otherwise, try again with potentially fewer objects
+    // Only reduce if we couldn't place at least half
+    if (successfullyPlaced < actualTotal * 0.7 && actualTotal > 1) {
+      actualTotal = Math.max(1, Math.floor(actualTotal * 0.8));
+    }
   }
-
-  if (placed.length < total) generate();
 }
 
 function createBox() {
@@ -514,5 +547,4 @@ if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
 </script>
 </body>
 </html>
-
 
