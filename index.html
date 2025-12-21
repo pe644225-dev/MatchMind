@@ -421,21 +421,21 @@ function generate() {
   const fh = field.clientHeight;
   let placed = [];
   let attempts = 0;
-  const maxAttempts = Math.min(5000, total * 300);
+  const maxAttempts = 8000;
 
-  // Ограничиваем максимальное количество объектов для надёжности
-  const maxObjects = fw < 400 ? Math.min(total, 10) : Math.min(total, 13);
-  let objectsToPlace = maxObjects;
-
-  while (placed.length < objectsToPlace && attempts < maxAttempts) {
+  while (placed.length < total && attempts < maxAttempts) {
     attempts++;
     const box = createBox();
     field.appendChild(box.el);
 
-    // Принудительно читаем размеры после добавления в DOM
-    const computedStyles = window.getComputedStyle(box.el);
-    const elWidth = parseFloat(computedStyles.width) || 60;
-    const elHeight = parseFloat(computedStyles.height) || 60;
+    const r = box.el.getBoundingClientRect();
+    const elWidth = r.width;
+    const elHeight = r.height;
+
+    if (elWidth <= 2 || elHeight <= 2) {
+      field.removeChild(box.el);
+      continue;
+    }
 
     const x = padding + Math.random() * (fw - elWidth - padding * 2);
     const y = padding + Math.random() * (fh - elHeight - padding * 2);
@@ -463,7 +463,7 @@ function generate() {
     placed.push(r2);
     box.el.classList.add(animDirs[Math.floor(Math.random() * 4)]);
     box.el.style.animationDuration = (0.4 + Math.random() * 0.6) + 's';
-    box.el.style.animationDelay = placed.length * 80 + 'ms';
+    box.el.style.animationDelay = placed.length * 60 + 'ms';
   }
 
   // Обновляем total до реально размещённого количества
