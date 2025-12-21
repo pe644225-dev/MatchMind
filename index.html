@@ -419,41 +419,26 @@ function generate() {
   const padding = 10;
   const fw = field.clientWidth;
   const fh = field.clientHeight;
-  let placed = [];
-  let attempts = 0;
-  const maxAttempts = 8000;
+  let placed = [], attempts = 0;
 
-  while (placed.length < total && attempts < maxAttempts) {
+  while (placed.length < total && attempts < 3000) {
     attempts++;
     const box = createBox();
     field.appendChild(box.el);
 
-    const r = box.el.getBoundingClientRect();
-    const elWidth = r.width;
-    const elHeight = r.height;
-
-    if (elWidth <= 2 || elHeight <= 2) {
-      field.removeChild(box.el);
-      continue;
-    }
-
-    const x = padding + Math.random() * (fw - elWidth - padding * 2);
-    const y = padding + Math.random() * (fh - elHeight - padding * 2);
+    const x = padding + Math.random() * (fw - box.el.offsetWidth - padding * 2);
+    const y = padding + Math.random() * (fh - box.el.offsetHeight - padding * 2);
     box.el.style.left = x + 'px';
     box.el.style.top = y + 'px';
 
-    const r2 = {
-      left: x,
-      top: y,
-      width: elWidth,
-      height: elHeight
-    };
+    const r2 = box.el.getBoundingClientRect();
+    const fr = field.getBoundingClientRect();
 
     if (
-      r2.left < SAFE ||
-      r2.top < SAFE ||
-      r2.left + r2.width > fw - SAFE ||
-      r2.top + r2.height > fh - SAFE ||
+      r2.left < fr.left + SAFE ||
+      r2.top < fr.top + SAFE ||
+      r2.right > fr.right - SAFE ||
+      r2.bottom > fr.bottom - SAFE ||
       placed.some(p => intersects(r2, p))
     ) {
       field.removeChild(box.el);
@@ -463,11 +448,10 @@ function generate() {
     placed.push(r2);
     box.el.classList.add(animDirs[Math.floor(Math.random() * 4)]);
     box.el.style.animationDuration = (0.4 + Math.random() * 0.6) + 's';
-    box.el.style.animationDelay = placed.length * 60 + 'ms';
+    box.el.style.animationDelay = placed.length * 80 + 'ms';
   }
 
-  // Обновляем total до реально размещённого количества
-  total = placed.length;
+  if (placed.length < total) generate();
 }
 
 function createBox() {
