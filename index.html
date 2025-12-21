@@ -182,7 +182,7 @@ input.input-warn{
   min-height:24px;
 }
 
-/* Apply bounce + glow only when visible */
+/* Apply bounce + glow only when visible (not hidden) */
 .instruction-step:not(.hidden) {
   animation: bounce 0.7s ease-out forwards;
 }
@@ -262,7 +262,7 @@ input.input-warn{
 
 <div id="step3" class="instruction-step hidden">👀 <b>Нажми «Показать» и отметь совпадения</b></div>
 
-<!-- НОВАЯ ИНСТРУКЦИЯ НА ЭТАПЕ САМОПРОВЕРКИ -->
+<!-- ✅ ВЕРНУТО НА ПРАВИЛЬНОЕ МЕСТО: над полем, под кнопкой "Показать" -->
 <div id="step4" class="instruction-step hidden">📝 <b>Отметь совпадения</b></div>
 
 <button id="resetBtn" class="hidden" style="margin-top:8px">Новая попытка</button>
@@ -532,4 +532,3 @@ if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
 </script>
 </body>
 </html>
-
