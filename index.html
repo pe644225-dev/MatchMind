@@ -197,7 +197,7 @@ input.input-warn{
 <div id="startScreen" class="controls-start">
   <p style="font-size:17px;color:#2e2e2e;margin:16px 0">✏️ Подготовь: лист бумаги и карандаш (или ручку)</p>
   <div>
-    <input type="number" id="count" min="0" max="20" value="4">
+    <input type="number" id="count" min="0" max="15" value="4">
     <button id="startBtn">Начать</button>
   </div>
   <div class="mode-buttons">
@@ -242,8 +242,8 @@ input.input-warn{
 </div>
 
 <script>
-const SAFE = 10;
-const CLICK_TOLERANCE = /Mobi|Android/i.test(navigator.userAgent) ? 14 : 7;
+const SAFE = 12;
+const CLICK_TOLERANCE = /Mobi|Android/i.test(navigator.userAgent) ? 16 : 8;
 const animDirs = ['from-top', 'from-bottom', 'from-left', 'from-right'];
 const colors = ['#e74c3c', '#3498db', '#2ecc71', '#f1c40f', '#9b59b6', '#e67e22'];
 
@@ -262,13 +262,15 @@ const step3 = document.getElementById('step3');
 
 let mode = null, total = 0, selected = 0, timer;
 
-// Input validation with dynamic max based on mode
+// Input validation
 countInput.addEventListener('input', () => {
   let v = +countInput.value;
-  let maxVal = getMaxCountForMode();
+  let maxVal = 15;
+  if (mode === 'figures' || mode === 'numbers') maxVal = 10;
+  
   let corrected = false;
   if (v > maxVal) { v = maxVal; corrected = true; }
-  if (v < 0) { v = 0; corrected = true; }
+  if (v < 1) { v = 1; corrected = true; }
   countInput.value = v;
   if (corrected) {
     countInput.classList.remove('input-warn');
@@ -278,15 +280,16 @@ countInput.addEventListener('input', () => {
   }
 });
 
-// Mode selection with dynamic max update
+// Mode selection
 modeBtns.forEach(b => {
   b.onclick = () => {
     modeBtns.forEach(x => x.classList.remove('active'));
     b.classList.add('active');
     mode = b.dataset.mode;
     
-    // Update max value based on selected mode
-    const maxVal = getMaxCountForMode();
+    // Update max value and validate current input
+    let maxVal = 15;
+    if (mode === 'figures' || mode === 'numbers') maxVal = 10;
     countInput.max = maxVal;
     if (+countInput.value > maxVal) {
       countInput.value = maxVal;
@@ -294,17 +297,11 @@ modeBtns.forEach(b => {
   };
 });
 
-function getMaxCountForMode() {
-  if (mode === 'figures' || mode === 'numbers') {
-    return 10; // Reduced for mobile performance
-  }
-  return 15; // Reduced from 20 for better mobile performance
-}
-
 // Start game
 startBtn.onclick = () => {
   const countValue = +countInput.value;
-  const maxVal = getMaxCountForMode();
+  let maxVal = 15;
+  if (mode === 'figures' || mode === 'numbers') maxVal = 10;
   
   if (countValue < 1 || countValue > maxVal) {
     countInput.classList.remove('input-warn');
@@ -361,9 +358,7 @@ showBtn.onclick = () => {
   updateResult();
 };
 
-// ✅ Полностью заменён: перезапуск без перезагрузки страницы
 resetBtn.onclick = () => {
-  // Сброс всего интерфейса
   field.innerHTML = '';
   field.classList.add('hidden');
   timerEl.classList.add('hidden');
@@ -374,17 +369,11 @@ resetBtn.onclick = () => {
   resetBtn.classList.add('hidden');
   result.classList.add('hidden');
   achievement.classList.add('hidden');
-  
-  // Возврат к стартовому экрану
   document.getElementById('startScreen').classList.remove('hidden');
-  
-  // Сброс состояния
   mode = null;
   total = 0;
   selected = 0;
   clearInterval(timer);
-  
-  // Сброс активных кнопок
   modeBtns.forEach(btn => btn.classList.remove('active'));
 };
 
@@ -429,70 +418,60 @@ function updateAchievement() {
   achievement.classList.remove('hidden');
 }
 
-// Optimized intersection check using simple rectangle math
-function intersects(a, b) {
-  return !(a.x + a.width <= b.x || b.x + b.width <= a.x || a.y + a.height <= b.y || b.y + b.height <= a.y);
-}
-
-// Predefined object sizes to avoid getBoundingClientRect calls during generation
-function getObjectDimensions() {
-  if (mode === 'matches') {
-    return { width: 94, height: 6 };
-  } else if (mode === 'numbers') {
-    return { width: 48, height: 48 };
-  } else { // figures
-    return { width: 60, height: 60 };
-  }
-}
-
+// ✅ ОПТИМИЗИРОВАННАЯ ФУНКЦИЯ ГЕНЕРАЦИИ - БЕЗ ЗАВИСАНИЙ
 function generate() {
   field.innerHTML = '';
   selected = 0;
   
-  const padding = 10;
-  const fw = field.clientWidth - padding * 2;
-  const fh = field.clientHeight - padding * 2;
-  const objDim = getObjectDimensions();
+  const padding = 12;
+  const fw = field.clientWidth;
+  const fh = field.clientHeight;
   
-  // Calculate maximum possible objects that can fit
-  const maxHorizontal = Math.floor(fw / (objDim.width + SAFE * 2));
-  const maxVertical = Math.floor(fh / (objDim.height + SAFE * 2));
-  const maxPossible = Math.max(1, Math.min(total, maxHorizontal * maxVertical, 12));
+  // Предопределенные размеры объектов
+  let objWidth, objHeight;
+  if (mode === 'matches') {
+    objWidth = 94; objHeight = 6;
+  } else if (mode === 'numbers') {
+    objWidth = 48; objHeight = 48;
+  } else { // figures
+    objWidth = 60; objHeight = 60;
+  }
   
-  // Use grid-based placement to avoid expensive collision detection
-  const placed = [];
-  const gridSizeX = Math.ceil(Math.sqrt(maxPossible));
-  const gridSizeY = Math.ceil(maxPossible / gridSizeX);
-  const cellWidth = fw / gridSizeX;
-  const cellHeight = fh / gridSizeY;
+  // Рассчитываем максимальное количество объектов, которые гарантированно поместятся
+  const availableWidth = fw - padding * 2;
+  const availableHeight = fh - padding * 2;
+  const minSpacing = SAFE * 2;
   
+  const maxPerRow = Math.floor(availableWidth / (objWidth + minSpacing));
+  const maxRows = Math.floor(availableHeight / (objHeight + minSpacing));
+  const maxPossible = Math.max(1, Math.min(total, maxPerRow * maxRows, 10));
+  
+  // Генерируем объекты по сетке
   for (let i = 0; i < maxPossible; i++) {
     const box = createBox();
     
-    // Place in grid cell with some random offset
-    const gridX = i % gridSizeX;
-    const gridY = Math.floor(i / gridSizeX);
+    const row = Math.floor(i / maxPerRow);
+    const col = i % maxPerRow;
     
-    const cellLeft = gridX * cellWidth;
-    const cellTop = gridY * cellHeight;
+    // Рассчитываем позицию с небольшим случайным смещением для естественности
+    const cellWidth = availableWidth / maxPerRow;
+    const cellHeight = availableHeight / maxRows;
     
-    const offsetX = Math.random() * (cellWidth - objDim.width - SAFE * 2) + SAFE;
-    const offsetY = Math.random() * (cellHeight - objDim.height - SAFE * 2) + SAFE;
-    
-    const x = padding + cellLeft + offsetX;
-    const y = padding + cellTop + offsetY;
+    const x = padding + col * cellWidth + SAFE + Math.random() * (cellWidth - objWidth - minSpacing);
+    const y = padding + row * cellHeight + SAFE + Math.random() * (cellHeight - objHeight - minSpacing);
     
     box.el.style.left = x + 'px';
     box.el.style.top = y + 'px';
     
-    field.appendChild(box.el);
-    
+    // Добавляем анимацию
     box.el.classList.add(animDirs[Math.floor(Math.random() * 4)]);
-    box.el.style.animationDuration = (0.4 + Math.random() * 0.6) + 's';
-    box.el.style.animationDelay = i * 80 + 'ms';
+    box.el.style.animationDuration = (0.4 + Math.random() * 0.5) + 's';
+    box.el.style.animationDelay = i * 60 + 'ms';
+    
+    field.appendChild(box.el);
   }
   
-  total = maxPossible; // Update total to actual placed count
+  total = maxPossible; // Обновляем фактическое количество объектов
 }
 
 function createBox() {
@@ -532,10 +511,10 @@ function createBox() {
   return { el };
 }
 
-// ✅ Инициализация Telegram WebApp
+// Telegram WebApp initialization
 if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
   Telegram.WebApp.expand();
-  Telegram.WebApp.disableVerticalSwipes(); // предотвращает закрытие свайпом
+  Telegram.WebApp.disableVerticalSwipes();
 }
 </script>
 </body>
