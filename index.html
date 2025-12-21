@@ -1,598 +1,518 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <title>MatchMind: ФотоПамять — v1.0</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>MatchMind: ФотоПамять — v1.0</title>
 
-  <!-- Telegram WebApp SDK -->
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<!-- Telegram WebApp SDK -->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-    }
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,Arial,sans-serif}
 
-    html, body {
-      height: 100%;
-      overflow: hidden;
-      background: #f5f7fa;
-    }
+body{
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:#eef1f6;
+}
 
-    body {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 12px;
-    }
+.game{
+  width:100%;
+  max-width:520px;
+  padding:26px;
+  border-radius:22px;
+  background:#eef1f6;
+  box-shadow:12px 12px 24px #d6dae0,-12px -12px 24px #fff;
+  text-align:center;
+}
 
-    .game {
-      width: 100%;
-      max-width: 460px;
-      padding: 24px;
-      border-radius: 24px;
-      background: #ffffff;
-      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.05);
-      text-align: center;
-    }
+h1{margin-bottom:16px}
 
-    h1 {
-      font-size: 24px;
-      font-weight: 700;
-      color: #2c3e50;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 16px;
-    }
+.controls-start{display:flex;flex-direction:column;gap:14px;margin-bottom:16px}
+.mode-buttons{
+  display:flex;
+  gap:10px;
+  justify-content:center;
+  flex-wrap:wrap;
+}
 
-    h1::before {
-      content: "🧠";
-      font-size: 26px;
-    }
+@keyframes warnBlink{
+  0%{box-shadow:6px 6px 12px #cfd3da,-6px -6px 12px #fff}
+  25%{box-shadow:0 0 0 3px rgba(255,140,0,1)}
+  50%{box-shadow:6px 6px 12px #cfd3da,-6px -6px 12px #fff}
+  75%{box-shadow:0 0 0 3px rgba(255,140,0,1)}
+  100%{box-shadow:6px 6px 12px #cfd3da,-6px -6px 12px #fff}
+}
 
-    .prep {
-      font-size: 16px;
-      color: #34495e;
-      margin: 12px 0 20px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
+@keyframes inputBounce{
+  0%{transform:translateY(0)}
+  30%{transform:translateY(-6px)}
+  55%{transform:translateY(0)}
+  75%{transform:translateY(-3px)}
+  100%{transform:translateY(0)}
+}
 
-    .prep::before {
-      content: "✏️";
-      font-size: 18px;
-    }
+button.warn{
+  animation:warnBlink 0.8s ease-in-out;
+}
 
-    .controls-start {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      margin-bottom: 20px;
-    }
+button{
+  padding:12px 20px;
+  font-size:15px;
+  border:none;
+  border-radius:14px;
+  background:#eef1f6;
+  cursor:pointer;
+  box-shadow:6px 6px 12px #cfd3da,-6px -6px 12px #fff;
+  transition:transform .12s ease, box-shadow .12s ease;
+}
+button:active{
+  transform:scale(.96);
+  box-shadow: inset 4px 4px 8px #cfd3da,inset -4px -4px 8px #fff;
+}
 
-    .count-control {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-    }
+button.active{outline:3px solid #4caf50}
 
-    input[type="number"] {
-      width: 60px;
-      padding: 10px;
-      font-size: 18px;
-      text-align: center;
-      border: 2px solid #ddd;
-      border-radius: 16px;
-      background: #fafafa;
-      box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
-      appearance: none;
-      -moz-appearance: textfield;
-      -webkit-appearance: none;
-      transition: box-shadow 0.2s ease;
-    }
+input{
+  transition: box-shadow .25s, background-color .25s;
+  width:90px;
+  padding:8px;
+  font-size:16px;
+  text-align:center;
+  border-radius:12px;
+  border:none;
+  background:#eef1f6;
+  box-shadow: inset 4px 4px 8px #cfd3da,inset -4px -4px 8px #fff
+}
 
-    input[type="number"]::-webkit-inner-spin-button,
-    input[type="number"]::-webkit-outer-spin-button {
-      -webkit-appearance: none;
-      margin: 0;
-    }
+input.input-warn{
+  background:#fff3e0;
+  box-shadow:0 0 0 3px rgba(255,140,0,.9);
+  animation: inputBounce 0.35s ease-out;
+}
 
-    button {
-      padding: 12px 20px;
-      font-size: 16px;
-      font-weight: 600;
-      border: none;
-      border-radius: 16px;
-      background: #f8f9fa;
-      cursor: pointer;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.05);
-      transition: all 0.15s ease;
-      touch-action: manipulation;
-      min-width: 80px;
-    }
+.field{
+  position:relative;
+  height:320px;
+  padding:10px;
+  border-radius:18px;
+  background:#eef1f6;
+  box-shadow: inset 6px 6px 12px #cfd3da,inset -6px -6px 12px #fff;
+  overflow:hidden;
+}
 
-    button:active {
-      transform: scale(0.98);
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
+@media (max-width:480px){
+  .field{height:280px}
+  button{padding:14px 22px;font-size:16px}
+  .object{transform:scale(.92) rotate(var(--rot,0deg))}
+}
 
-    /* Мигание при ошибке */
-    @keyframes warnBlink {
-      0%, 50%, 100% { box-shadow: 0 0 0 2px #ddd; }
-      25%, 75% { box-shadow: 0 0 0 3px rgba(255, 140, 0, 1); }
-    }
+.hidden{display:none}
+.timer{font-size:22px;color:#e74c3c;margin:14px 0}
 
-    button.warn {
-      animation: warnBlink 0.8s ease-in-out;
-    }
+.object{
+  position:absolute;
+  animation-fill-mode:both;
+  animation-timing-function:cubic-bezier(.22,.61,.36,1);
+  transform:rotate(var(--rot,0deg))
+}
+.object.selected{
+  outline:3px solid #4caf50;
+  outline-offset:2px;
+  box-shadow:0 0 0 3px rgba(76,175,80,.35);
+}
 
-    input.input-warn {
-      background: #fff3e0;
-      box-shadow: 0 0 0 3px rgba(255, 140, 0, 0.9) !important;
-      animation: inputBounce 0.35s ease-out;
-    }
+.figure{box-shadow:0 6px 10px rgba(0,0,0,.25),inset 0 2px 3px rgba(255,255,255,.6),inset 0 -3px 6px rgba(0,0,0,.25)}
+.figure::after{content:'';position:absolute;inset:3px;border-radius:inherit;background:linear-gradient(to bottom right,rgba(255,255,255,.35),rgba(255,255,255,0));pointer-events:none}
+.figure.triangle{box-shadow:none;filter:drop-shadow(0 6px 8px rgba(0,0,0,.35))}
 
-    @keyframes inputBounce {
-      0% { transform: translateY(0); }
-      30% { transform: translateY(-6px); }
-      55% { transform: translateY(0); }
-      75% { transform: translateY(-3px); }
-      100% { transform: translateY(0); }
-    }
+.from-top{animation-name:fromTop}
+.from-bottom{animation-name:fromBottom}
+.from-left{animation-name:fromLeft}
+.from-right{animation-name:fromRight}
 
-    .mode-buttons {
-      display: flex;
-      gap: 10px;
-      justify-content: center;
-      flex-wrap: wrap;
-    }
+@keyframes fromTop{0%{transform:translateY(-120px) rotate(var(--rot)) scale(.9);opacity:0}80%{transform:translateY(0) rotate(var(--rot)) scale(1.05);opacity:1}100%{transform:translateY(0) rotate(var(--rot)) scale(1)}}
+@keyframes fromBottom{0%{transform:translateY(120px) rotate(var(--rot)) scale(.9);opacity:0}80%{transform:translateY(0) rotate(var(--rot)) scale(1.05);opacity:1}100%{transform:translateY(0) rotate(var(--rot)) scale(1)}}
+@keyframes fromLeft{0%{transform:translateX(-120px) rotate(var(--rot)) scale(.9);opacity:0}80%{transform:translateX(0) rotate(var(--rot)) scale(1.05);opacity:1}100%{transform:translateX(0) rotate(var(--rot)) scale(1)}}
+@keyframes fromRight{0%{transform:translateX(120px) rotate(var(--rot)) scale(.9);opacity:0}80%{transform:translateX(0) rotate(var(--rot)) scale(1.05);opacity:1}100%{transform:translateX(0) rotate(var(--rot)) scale(1)}}
 
-    .instruction-list {
-      margin: 20px 0;
-      text-align: left;
-      font-size: 16px;
-      color: #2c3e50;
-      line-height: 1.6;
-    }
+.match{width:94px;height:6px;border-radius:4px;background:linear-gradient(#deb887,#cfa36a 40%,#b88952)}
+.match::after{content:'';position:absolute;right:-6px;top:-4px;width:14px;height:14px;border-radius:50%;background:radial-gradient(circle,#ff6b6b,#b22222)}
 
-    .instruction-item {
-      display: flex;
-      align-items: flex-start;
-      gap: 8px;
-      margin: 8px 0;
-    }
+.number{
+  width:48px;height:48px;border-radius:50%;
+  background:#fff;color:#222;
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;font-weight:700
+}
 
-    .instruction-item::before {
-      font-size: 18px;
-      flex-shrink: 0;
-    }
+@keyframes pop{
+  0%{transform:scale(.85);opacity:0}
+  100%{transform:scale(1);opacity:1}
+}
 
-    .instruction-item:nth-child(1)::before { content: "🧠"; }
-    .instruction-item:nth-child(2)::before { content: "📝"; }
-    .instruction-item:nth-child(3)::before { content: "👀"; }
+.instruction-step{
+  margin:12px 0;
+  font-size:18px;
+  color:#2c3e50;
+  min-height:24px;
+}
 
-    .hidden { display: none !important; }
+.info-section {
+  margin-top: 20px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 16px;
+  box-shadow: inset 2px 2px 4px #d1d5db, inset -2px -2px 4px #ffffff;
+  text-align: justify;
+  font-size: 14px;
+  color: #495057;
+  line-height: 1.5;
+}
 
-    .timer {
-      font-size: 20px;
-      color: #e74c3c;
-      margin: 14px 0;
-      font-weight: 600;
-    }
+.info-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #2c3e50;
+  text-align: center;
+}
 
-    .field {
-      position: relative;
-      height: 280px;
-      padding: 10px;
-      border-radius: 18px;
-      background: #f8f9fa;
-      box-shadow: inset 0 4px 8px rgba(0,0,0,0.05);
-      overflow: hidden;
-      margin: 12px auto;
-    }
-
-    @media (min-width: 481px) {
-      .field { height: 320px; }
-    }
-
-    .object {
-      position: absolute;
-      animation-fill-mode: both;
-      animation-timing-function: cubic-bezier(0.22, 0.61, 0.36, 1);
-      transform: rotate(var(--rot, 0deg));
-      cursor: pointer;
-      touch-action: manipulation;
-    }
-
-    .object.selected {
-      outline: 3px solid #4caf50;
-      outline-offset: 2px;
-      box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.35);
-    }
-
-    .figure {
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1), inset 0 2px 3px rgba(255,255,255,0.6), inset 0 -3px 6px rgba(0,0,0,0.1);
-    }
-
-    .figure::after {
-      content: '';
-      position: absolute;
-      inset: 3px;
-      border-radius: inherit;
-      background: linear-gradient(to bottom right, rgba(255,255,255,0.35), transparent);
-      pointer-events: none;
-    }
-
-    .figure.triangle {
-      box-shadow: none;
-      filter: drop-shadow(0 4px 6px rgba(0,0,0,0.2));
-    }
-
-    .from-top { animation-name: fromTop; }
-    .from-bottom { animation-name: fromBottom; }
-    .from-left { animation-name: fromLeft; }
-    .from-right { animation-name: fromRight; }
-
-    @keyframes fromTop {
-      0% { transform: translateY(-120px) rotate(var(--rot)) scale(0.9); opacity: 0; }
-      80% { transform: translateY(0) rotate(var(--rot)) scale(1.05); opacity: 1; }
-      100% { transform: translateY(0) rotate(var(--rot)) scale(1); }
-    }
-    @keyframes fromBottom { /* аналогично */ }
-    @keyframes fromLeft { /* аналогично */ }
-    @keyframes fromRight { /* аналогично */ }
-
-    .match {
-      width: 94px;
-      height: 6px;
-      border-radius: 4px;
-      background: linear-gradient(#deb887, #cfa36a 40%, #b88952);
-    }
-    .match::after {
-      content: '';
-      position: absolute;
-      right: -6px;
-      top: -4px;
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      background: radial-gradient(circle, #ff6b6b, #b22222);
-    }
-
-    .number {
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      background: #fff;
-      color: #222;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      font-weight: 700;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    }
-
-    @keyframes pop {
-      0% { transform: scale(0.85); opacity: 0; }
-      100% { transform: scale(1); opacity: 1; }
-    }
-  </style>
+.info-section p {
+  margin: 8px 0;
+}
+</style>
 </head>
+
 <body>
-  <div class="game">
-    <h1>MatchMind: ФотоПамять</h1>
+<div class="game">
+<h1>🧠 MatchMind: ФотоПамять</h1>
 
-    <div id="startScreen" class="controls-start">
-      <div class="prep">Подготовь: лист бумаги и карандаш (или ручку)</div>
-
-      <div class="count-control">
-        <input type="number" id="count" min="1" max="15" value="15" inputmode="numeric" pattern="[0-9]*" />
-        <button id="startBtn">Начать</button>
-      </div>
-
-      <div class="mode-buttons">
-        <button data-mode="matches">Спички</button>
-        <button data-mode="figures">Фигуры</button>
-        <button data-mode="numbers">Числа</button>
-      </div>
-
-      <div class="instruction-list">
-        <div class="instruction-item">Запомни объекты</div>
-        <div class="instruction-item">Нарисуй их на бумаге</div>
-        <div class="instruction-item">Нажми «Показать» и отметь совпадения</div>
-      </div>
-
-      <div class="info-section">
-        <h3>ℹ️ Об игре</h3>
-        <p>Наш тренажёр построен на научно доказанных принципах работы мозга. Инновационный подход, основанный на визуальном переносе информации с экрана на бумагу, активизирует ключевые механизмы запоминания и развивает фотографическую память.</p>
-        <p>Эффективность метода подтверждается быстрым прогрессом: уже через неделю регулярных тренировок вы заметите значительное улучшение способности к запоминанию.</p>
-        <p>В отличие от обычных игр на память, наша система предлагает целенаправленную тренировку, которая превращает процесс обучения в результативную работу над развитием ваших когнитивных способностей.</p>
-      </div>
-    </div>
-
-    <div id="step1" class="instruction-step hidden">🧠 Запомни объекты</div>
-    <div id="timer" class="timer hidden"></div>
-    <div id="field" class="field hidden"></div>
-    <div id="step2" class="instruction-step hidden">📝 Нарисуй их на бумаге</div>
-
-    <div style="margin-top: 12px">
-      <button id="showBtn" class="hidden">Показать</button>
-    </div>
-
-    <div id="step3" class="instruction-step hidden">👀 Отметь совпадения</div>
-    <button id="resetBtn" class="hidden" style="margin-top: 14px">Новая попытка</button>
-
-    <div id="result" class="hidden" style="margin-top: 12px; font-size: 18px; font-weight: 600;"></div>
-    <div id="achievement" class="hidden" style="margin-top: 8px; font-size: 18px; font-weight: 600;"></div>
+<div id="startScreen" class="controls-start">
+  <p style="font-size:17px;color:#2e2e2e;margin:16px 0">✏️ Подготовь: лист бумаги и карандаш (или ручку)</p>
+  <div>
+    <input type="number" id="count" min="0" max="15" value="4">
+    <button id="startBtn">Начать</button>
   </div>
+  <div class="mode-buttons">
+    <button data-mode="matches">Спички</button>
+    <button data-mode="figures">Фигуры</button>
+    <button data-mode="numbers">Числа</button>
+  </div>
+  
+  <div id="instructions">
+    <div class="instruction">
+      🧠 Запомни объекты<br>
+      📝 Нарисуй их на бумаге<br>
+      👀 Нажми «Показать» и отметь совпадения
+    </div>
+  </div>
+  
+  <div class="info-section">
+    <h3>ℹ️ Об игре</h3>
+    <p>Наш тренажёр построен на научно доказанных принципах работы мозга. Инновационный подход, основанный на визуальном переносе информации с экрана на бумагу, активизирует ключевые механизмы запоминания и развивает фотографическую память.</p>
+    <p>Эффективность метода подтверждается быстрым прогрессом: уже через неделю регулярных тренировок вы заметите значительное улучшение способности к запоминанию.</p>
+    <p>В отличие от обычных игр на память, наша система предлагает целенаправленную тренировку, которая превращает процесс обучения в результативную работу над развитием ваших когнитивных способностей.</p>
+  </div>
+</div>
 
-  <script>
-    const SAFE = 12;
-    const CLICK_TOLERANCE = 16;
-    const animDirs = ['from-top', 'from-bottom', 'from-left', 'from-right'];
-    const colors = ['#e74c3c', '#3498db', '#2ecc71', '#f1c40f', '#9b59b6', '#e67e22'];
+<div id="step1" class="instruction-step hidden">🧠 Запомни объекты</div>
 
-    // DOM elements
-    const field = document.getElementById('field');
-    const startBtn = document.getElementById('startBtn');
-    const showBtn = document.getElementById('showBtn');
-    const resetBtn = document.getElementById('resetBtn');
-    const timerEl = document.getElementById('timer');
-    const result = document.getElementById('result');
-    const achievement = document.getElementById('achievement');
-    const countInput = document.getElementById('count');
-    const modeBtns = document.querySelectorAll('.mode-buttons button');
-    const step1 = document.getElementById('step1');
-    const step2 = document.getElementById('step2');
-    const step3 = document.getElementById('step3');
-    const startScreen = document.getElementById('startScreen');
+<div id="timer" class="timer hidden"></div>
+<div id="field" class="field hidden"></div>
 
-    let mode = null, total = 0, selected = 0, timer;
+<div id="step2" class="instruction-step hidden">📝 Нарисуй их на бумаге</div>
 
-    // Input validation with blink effect
-    countInput.addEventListener('input', () => {
-      let v = parseInt(countInput.value) || 1;
-      if (v > 15) {
-        v = 15;
-        countInput.value = v;
-        triggerWarn(countInput);
-      } else if (v < 1) {
-        v = 1;
-        countInput.value = v;
-        triggerWarn(countInput);
-      }
-    });
+<div style="margin-top:5px">
+  <button id="showBtn" class="hidden">Показать</button>
+</div>
 
-    function triggerWarn(element) {
-      element.classList.remove('input-warn');
-      void element.offsetWidth; // force reflow
-      element.classList.add('input-warn');
-      setTimeout(() => element.classList.remove('input-warn'), 350);
-    }
+<div id="step3" class="instruction-step hidden">👀 Нажми «Показать» и отметь совпадения</div>
 
-    // Mode selection
+<button id="resetBtn" class="hidden" style="margin-top:8px">Новая попытка</button>
+
+<div id="result" class="hidden"></div>
+<div id="achievement" class="hidden"></div>
+</div>
+
+<script>
+const SAFE = 10;
+const CLICK_TOLERANCE = /Mobi|Android/i.test(navigator.userAgent) ? 14 : 7;
+const animDirs = ['from-top', 'from-bottom', 'from-left', 'from-right'];
+const colors = ['#e74c3c', '#3498db', '#2ecc71', '#f1c40f', '#9b59b6', '#e67e22'];
+
+const field = document.getElementById('field');
+const startBtn = document.getElementById('startBtn');
+const showBtn = document.getElementById('showBtn');
+const resetBtn = document.getElementById('resetBtn');
+const timerEl = document.getElementById('timer');
+const result = document.getElementById('result');
+const achievement = document.getElementById('achievement');
+const countInput = document.getElementById('count');
+const modeBtns = document.querySelectorAll('.mode-buttons button');
+const step1 = document.getElementById('step1');
+const step2 = document.getElementById('step2');
+const step3 = document.getElementById('step3');
+
+let mode = null, total = 0, selected = 0, timer;
+
+// Input validation
+countInput.addEventListener('input', () => {
+  let v = +countInput.value;
+  let corrected = false;
+  if (v > 15) { v = 15; corrected = true; }
+  if (v < 0) { v = 0; corrected = true; }
+  countInput.value = v;
+  if (corrected) {
+    countInput.classList.remove('input-warn');
+    void countInput.offsetWidth;
+    countInput.classList.add('input-warn');
+    setTimeout(() => countInput.classList.remove('input-warn'), 350);
+  }
+});
+
+// Mode selection
+modeBtns.forEach(b => {
+  b.onclick = () => {
+    modeBtns.forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    mode = b.dataset.mode;
+  };
+});
+
+// Start game
+startBtn.onclick = () => {
+  const countValue = +countInput.value;
+  if (countValue < 1 || countValue > 15) {
+    countInput.classList.remove('input-warn');
+    void countInput.offsetWidth;
+    countInput.classList.add('input-warn');
+    setTimeout(() => countInput.classList.remove('input-warn'), 350);
+    return;
+  }
+  if (!mode) {
     modeBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        modeBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        mode = btn.dataset.mode;
-      });
+      btn.classList.remove('warn');
+      void btn.offsetWidth;
+      btn.classList.add('warn');
     });
+    return;
+  }
+  
+  total = countValue;
+  document.getElementById('startScreen').classList.add('hidden');
+  step1.classList.remove('hidden');
+  field.classList.remove('hidden');
+  timerEl.classList.remove('hidden');
+  generate();
+  startTimer();
+};
 
-    // Start game
-    startBtn.addEventListener('click', () => {
-      const countValue = +countInput.value;
-      if (!mode) {
-        modeBtns.forEach(b => {
-          b.classList.remove('warn');
-          void b.offsetWidth;
-          b.classList.add('warn');
-        });
-        return;
-      }
-
-      total = countValue;
-      selected = 0;
-
-      startScreen.classList.add('hidden');
-      step1.classList.remove('hidden');
-      field.classList.remove('hidden');
-      timerEl.classList.remove('hidden');
-
-      generate();
-      startTimer();
-    });
-
-    function startTimer() {
-      let t = 15;
-      timerEl.textContent = `Осталось: ${t} сек`;
-      timer = setInterval(() => {
-        t--;
-        timerEl.textContent = `Осталось: ${t} сек`;
-        if (t <= 0) {
-          clearInterval(timer);
-          step1.classList.add('hidden');
-          field.classList.add('hidden');
-          timerEl.classList.add('hidden');
-          step2.classList.remove('hidden');
-          step3.classList.remove('hidden');
-          showBtn.classList.remove('hidden');
-        }
-      }, 1000);
-    }
-
-    showBtn.addEventListener('click', () => {
-      step2.classList.add('hidden');
-      step3.classList.add('hidden');
-      showBtn.classList.add('hidden');
-      resetBtn.classList.remove('hidden');
-      field.classList.remove('hidden');
-      field.classList.add('check');
-      updateResult();
-    });
-
-    resetBtn.addEventListener('click', () => {
-      field.innerHTML = '';
-      field.className = 'field hidden';
-      timerEl.className = 'timer hidden';
-      step1.className = 'instruction-step hidden';
-      step2.className = 'instruction-step hidden';
-      step3.className = 'instruction-step hidden';
-      showBtn.className = 'hidden';
-      resetBtn.className = 'hidden';
-      result.className = 'hidden';
-      achievement.className = 'hidden';
-      startScreen.classList.remove('hidden');
-      mode = null;
-      total = 0;
-      selected = 0;
+function startTimer() {
+  let t = 15;
+  timerEl.textContent = `Осталось: ${t} сек`;
+  timer = setInterval(() => {
+    t--;
+    timerEl.textContent = `Осталось: ${t} сек`;
+    if (t <= 0) {
       clearInterval(timer);
-      modeBtns.forEach(b => b.classList.remove('active'));
-    });
+      field.classList.add('hidden');
+      timerEl.classList.add('hidden');
+      step1.classList.add('hidden');
+      step2.classList.remove('hidden');
+      showBtn.classList.remove('hidden');
+      step3.classList.remove('hidden');
+    }
+  }, 1000);
+}
 
-    field.addEventListener('click', e => {
-      if (!field.classList.contains('check')) return;
-      const rect = field.getBoundingClientRect();
-      const clickX = e.clientX - rect.left;
-      const clickY = e.clientY - rect.top;
+showBtn.onclick = () => {
+  step2.classList.add('hidden');
+  step3.classList.add('hidden');
+  resetBtn.style.marginTop = '5px';
+  result.style.marginTop = '7px';
+  field.classList.remove('hidden');
+  field.classList.add('check');
+  showBtn.classList.add('hidden');
+  resetBtn.classList.remove('hidden');
+  updateResult();
+};
 
-      field.querySelectorAll('.object:not(.selected)').forEach(el => {
-        const r = el.getBoundingClientRect();
-        const elX = r.left - rect.left;
-        const elY = r.top - rect.top;
-        const w = r.width + CLICK_TOLERANCE * 2;
-        const h = r.height + CLICK_TOLERANCE * 2;
-        const x = elX - CLICK_TOLERANCE;
-        const y = elY - CLICK_TOLERANCE;
+resetBtn.onclick = () => {
+  field.innerHTML = '';
+  field.classList.add('hidden');
+  timerEl.classList.add('hidden');
+  step1.classList.add('hidden');
+  step2.classList.add('hidden');
+  step3.classList.add('hidden');
+  showBtn.classList.add('hidden');
+  resetBtn.classList.add('hidden');
+  result.classList.add('hidden');
+  achievement.classList.add('hidden');
+  document.getElementById('startScreen').classList.remove('hidden');
+  mode = null;
+  total = 0;
+  selected = 0;
+  if (timer) clearInterval(timer);
+  modeBtns.forEach(btn => btn.classList.remove('active'));
+};
 
-        if (clickX >= x && clickX <= x + w && clickY >= y && clickY <= y + h) {
-          el.classList.add('selected');
-          selected++;
-          updateResult();
-        }
-      });
-    });
+field.onclick = e => {
+  if (!field.classList.contains('check')) return;
+  const fr = field.getBoundingClientRect();
+  const x = e.clientX - fr.left;
+  const y = e.clientY - fr.top;
 
-    function updateResult() {
-      result.textContent = `Отмечено: ${selected} из ${total}`;
-      result.classList.remove('hidden');
-      updateAchievement();
+  field.querySelectorAll('.object').forEach(el => {
+    if (el.classList.contains('selected')) return;
+    const r = el.getBoundingClientRect();
+    const bx = r.left - fr.left - CLICK_TOLERANCE;
+    const by = r.top - fr.top - CLICK_TOLERANCE;
+    const bw = r.width + CLICK_TOLERANCE * 2;
+    const bh = r.height + CLICK_TOLERANCE * 2;
+
+    if (x >= bx && x <= bx + bw && y >= by && y <= by + bh) {
+      el.classList.add('selected');
+      selected++;
+      updateResult();
+    }
+  });
+};
+
+function updateResult() {
+  result.textContent = `Отмечено: ${selected} из ${total}`;
+  result.classList.remove('hidden');
+  updateAchievement();
+}
+
+function updateAchievement() {
+  achievement.style.animation = 'none';
+  void achievement.offsetWidth;
+  achievement.style.animation = 'pop .35s ease';
+  const r = total > 0 ? selected / total : 0;
+  achievement.textContent =
+    r === 1 ? '🧠✨ Идеально!'
+    : r >= 0.8 ? '🧠👍 Отлично!'
+    : r >= 0.5 ? '🧠 Неплохо'
+    : '';
+  achievement.classList.remove('hidden');
+}
+
+function intersects(a, b) {
+  return !(
+    a.left + a.width <= b.left ||
+    a.left >= b.left + b.width ||
+    a.top + a.height <= b.top ||
+    a.top >= b.top + b.height
+  );
+}
+
+function generate() {
+  field.innerHTML = '';
+  selected = 0;
+  const padding = 10;
+  const fw = field.clientWidth;
+  const fh = field.clientHeight;
+  let placed = [];
+  let attempts = 0;
+  const maxAttempts = Math.min(5000, total * 300);
+
+  // Ограничиваем максимальное количество объектов для надёжности
+  const maxObjects = fw < 400 ? Math.min(total, 10) : Math.min(total, 13);
+  let objectsToPlace = maxObjects;
+
+  while (placed.length < objectsToPlace && attempts < maxAttempts) {
+    attempts++;
+    const box = createBox();
+    field.appendChild(box.el);
+
+    // Принудительно читаем размеры после добавления в DOM
+    const computedStyles = window.getComputedStyle(box.el);
+    const elWidth = parseFloat(computedStyles.width) || 60;
+    const elHeight = parseFloat(computedStyles.height) || 60;
+
+    const x = padding + Math.random() * (fw - elWidth - padding * 2);
+    const y = padding + Math.random() * (fh - elHeight - padding * 2);
+    box.el.style.left = x + 'px';
+    box.el.style.top = y + 'px';
+
+    const r2 = {
+      left: x,
+      top: y,
+      width: elWidth,
+      height: elHeight
+    };
+
+    if (
+      r2.left < SAFE ||
+      r2.top < SAFE ||
+      r2.left + r2.width > fw - SAFE ||
+      r2.top + r2.height > fh - SAFE ||
+      placed.some(p => intersects(r2, p))
+    ) {
+      field.removeChild(box.el);
+      continue;
     }
 
-    function updateAchievement() {
-      achievement.style.animation = 'none';
-      void achievement.offsetWidth;
-      achievement.style.animation = 'pop 0.35s ease';
+    placed.push(r2);
+    box.el.classList.add(animDirs[Math.floor(Math.random() * 4)]);
+    box.el.style.animationDuration = (0.4 + Math.random() * 0.6) + 's';
+    box.el.style.animationDelay = placed.length * 80 + 'ms';
+  }
 
-      const ratio = selected / total;
-      achievement.textContent =
-        ratio === 1 ? '🧠✨ Идеально!'
-        : ratio >= 0.8 ? '🧠👍 Отлично!'
-        : ratio >= 0.5 ? '🧠 Неплохо'
-        : '';
-      achievement.classList.remove('hidden');
+  // Обновляем total до реально размещённого количества
+  total = placed.length;
+}
+
+function createBox() {
+  const el = document.createElement('div');
+  el.classList.add('object');
+
+  if (mode === 'matches') {
+    el.classList.add('match');
+    el.style.setProperty('--rot', `${Math.random() * 360}deg`);
+  }
+
+  if (mode === 'numbers') {
+    el.classList.add('number');
+    el.textContent = Math.floor(Math.random() * 10);
+  }
+
+  if (mode === 'figures') {
+    el.classList.add('figure');
+    const shape = ['square', 'circle', 'triangle'][Math.floor(Math.random() * 3)];
+    const color = colors[Math.floor(Math.random() * colors.length)];
+
+    if (shape === 'triangle') {
+      el.classList.add('triangle');
+      el.style.width = '0';
+      el.style.height = '0';
+      el.style.borderLeft = '30px solid transparent';
+      el.style.borderRight = '30px solid transparent';
+      el.style.borderBottom = '60px solid ' + color;
+    } else {
+      el.style.width = '60px';
+      el.style.height = '60px';
+      el.style.background = color;
+      if (shape === 'circle') el.style.borderRadius = '50%';
     }
+  }
 
-    function intersects(a, b) {
-      return !(
-        a.right <= b.left ||
-        b.right <= a.left ||
-        a.bottom <= b.top ||
-        b.bottom <= a.top
-      );
-    }
+  return { el };
+}
 
-    function generate() {
-      field.innerHTML = '';
-      const fw = field.clientWidth;
-      const fh = field.clientHeight;
-      const padding = 12;
-      let placed = [];
-      let attempts = 0;
-
-      while (placed.length < total && attempts < 3000) {
-        attempts++;
-        const box = createBox();
-        field.appendChild(box.el);
-
-        const x = padding + Math.random() * (fw - box.el.offsetWidth - padding * 2);
-        const y = padding + Math.random() * (fh - box.el.offsetHeight - padding * 2);
-        box.el.style.left = `${x}px`;
-        box.el.style.top = `${y}px`;
-
-        const r2 = box.el.getBoundingClientRect();
-        const fr = field.getBoundingClientRect();
-
-        if (
-          r2.left < fr.left + SAFE ||
-          r2.top < fr.top + SAFE ||
-          r2.right > fr.right - SAFE ||
-          r2.bottom > fr.bottom - SAFE ||
-          placed.some(p => intersects(r2, p))
-        ) {
-          field.removeChild(box.el);
-          continue;
-        }
-
-        placed.push(r2);
-        box.el.classList.add(animDirs[Math.floor(Math.random() * 4)]);
-        box.el.style.animationDuration = `${0.4 + Math.random() * 0.6}s`;
-        box.el.style.animationDelay = `${placed.length * 80}ms`;
-      }
-
-      if (placed.length < total) generate();
-    }
-
-    function createBox() {
-      const el = document.createElement('div');
-      el.classList.add('object');
-
-      if (mode === 'matches') {
-        el.classList.add('match');
-        el.style.setProperty('--rot', `${Math.random() * 360}deg`);
-      }
-
-      if (mode === 'numbers') {
-        el.classList.add('number');
-        el.textContent = Math.floor(Math.random() * 10);
-      }
-
-      if (mode === 'figures') {
-        el.classList.add('figure');
-        const shape = ['square', 'circle', 'triangle'][Math.floor(Math.random() * 3)];
-        const color = colors[Math.floor(Math.random() * colors.length)];
-
-        if (shape === 'triangle') {
-          el.classList.add('triangle');
-          el.style.width = '0';
-          el.style.height = '0';
-          el.style.borderLeft = '30px solid transparent';
-          el.style.borderRight = '30px solid transparent';
-          el.style.borderBottom = `60px solid ${color}`;
-        } else {
-          el.style.width = '60px';
-          el.style.height = '60px';
-          el.style.background = color;
-          if (shape === 'circle') el.style.borderRadius = '50%';
-        }
-      }
-
-      return { el };
-    }
-
-    // Telegram WebApp init
-    if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
-      Telegram.WebApp.expand();
-      Telegram.WebApp.disableVerticalSwipes();
-      Telegram.WebApp.ready();
-    }
-  </script>
+// Telegram WebApp
+if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
+  Telegram.WebApp.expand();
+  Telegram.WebApp.disableVerticalSwipes();
+}
+</script>
 </body>
 </html>
+
