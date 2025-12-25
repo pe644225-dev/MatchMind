@@ -8,6 +8,10 @@
 <!-- Telegram WebApp SDK -->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
+<!-- Yandex.RTB -->
+<script>window.yaContextCb=window.yaContextCb||[]</script>
+<script src="https://yandex.ru/ads/system/context.js" async></script>
+
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,Arial,sans-serif}
 
@@ -274,6 +278,17 @@ input.input-warn{
 <div id="field" class="field hidden"></div>
 
 <div id="step2" class="instruction-step hidden">📝 <b>Нарисуй их на бумаге</b></div>
+
+<!-- Yandex.RTB R-A-18292915-1 -->
+<div id="yandex_rtb_R-A-18292915-1" style="margin: 12px 0;"></div>
+<script>
+window.yaContextCb.push(() => {
+    Ya.Context.AdvManager.render({
+        "blockId": "R-A-18292915-1",
+        "renderTo": "yandex_rtb_R-A-18292915-1"
+    })
+})
+</script>
 
 <div style="margin-top:5px">
   <button id="showBtn" class="hidden">Показать</button>
@@ -598,3 +613,4 @@ if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
 </script>
 </body>
 </html>
+
